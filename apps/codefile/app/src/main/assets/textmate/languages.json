@@ -1,0 +1,520 @@
+{
+  "languages": [
+    {
+      "name": "bat",
+      "scopeName": "source.batchfile",
+      "grammar": "textmate/bat/batchfile.tmLanguage.json"
+    },
+    {
+      "name": "clojure",
+      "scopeName": "source.clojure",
+      "grammar": "textmate/clojure/clojure.tmLanguage.json"
+    },
+    {
+      "name": "coffeescript",
+      "scopeName": "source.coffee",
+      "grammar": "textmate/coffeescript/coffeescript.tmLanguage.json"
+    },
+    {
+      "name": "c",
+      "scopeName": "source.c",
+      "grammar": "textmate/cpp/c.tmLanguage.json"
+    },
+    {
+      "name": "source.cpp.embedded.macro",
+      "scopeName": "source.cpp.embedded.macro",
+      "grammar": "textmate/cpp/cpp.embedded.macro.tmLanguage.json"
+    },
+    {
+      "name": "cpp",
+      "scopeName": "source.cpp",
+      "grammar": "textmate/cpp/cpp.tmLanguage.json"
+    },
+    {
+      "name": "source.c.platform",
+      "scopeName": "source.c.platform",
+      "grammar": "textmate/cpp/platform.tmLanguage.json"
+    },
+    {
+      "name": "cuda-cpp",
+      "scopeName": "source.cuda-cpp",
+      "grammar": "textmate/cpp/cuda-cpp.tmLanguage.json"
+    },
+    {
+      "name": "csharp",
+      "scopeName": "source.cs",
+      "grammar": "textmate/csharp/csharp.tmLanguage.json"
+    },
+    {
+      "name": "css",
+      "scopeName": "source.css",
+      "grammar": "textmate/css/css.tmLanguage.json"
+    },
+    {
+      "name": "dart",
+      "scopeName": "source.dart",
+      "grammar": "textmate/dart/dart.tmLanguage.json"
+    },
+    {
+      "name": "diff",
+      "scopeName": "source.diff",
+      "grammar": "textmate/diff/diff.tmLanguage.json"
+    },
+    {
+      "name": "dockerfile",
+      "scopeName": "source.dockerfile",
+      "grammar": "textmate/docker/docker.tmLanguage.json"
+    },
+    {
+      "name": "fsharp",
+      "scopeName": "source.fsharp",
+      "grammar": "textmate/fsharp/fsharp.tmLanguage.json"
+    },
+    {
+      "name": "git-commit",
+      "scopeName": "text.git-commit",
+      "grammar": "textmate/git-base/git-commit.tmLanguage.json"
+    },
+    {
+      "name": "git-rebase",
+      "scopeName": "text.git-rebase",
+      "grammar": "textmate/git-base/git-rebase.tmLanguage.json"
+    },
+    {
+      "name": "ignore",
+      "scopeName": "source.ignore",
+      "grammar": "textmate/git-base/ignore.tmLanguage.json"
+    },
+    {
+      "name": "go",
+      "scopeName": "source.go",
+      "grammar": "textmate/go/go.tmLanguage.json"
+    },
+    {
+      "name": "groovy",
+      "scopeName": "source.groovy",
+      "grammar": "textmate/groovy/groovy.tmLanguage.json"
+    },
+    {
+      "name": "handlebars",
+      "scopeName": "text.html.handlebars",
+      "grammar": "textmate/handlebars/Handlebars.tmLanguage.json"
+    },
+    {
+      "name": "hlsl",
+      "scopeName": "source.hlsl",
+      "grammar": "textmate/hlsl/hlsl.tmLanguage.json"
+    },
+    {
+      "name": "text.html.basic",
+      "scopeName": "text.html.basic",
+      "grammar": "textmate/html/html.tmLanguage.json",
+      "embeddedLanguages": {
+        "text.html": "html",
+        "source.css": "css",
+        "source.js": "javascript",
+        "source.python": "python",
+        "source.smarty": "smarty"
+      }
+    },
+    {
+      "name": "html",
+      "scopeName": "text.html.derivative",
+      "grammar": "textmate/html/html-derivative.tmLanguage.json",
+      "embeddedLanguages": {
+        "text.html": "html",
+        "source.css": "css",
+        "source.js": "javascript",
+        "source.python": "python",
+        "source.smarty": "smarty"
+      }
+    },
+    {
+      "name": "ini",
+      "scopeName": "source.ini",
+      "grammar": "textmate/ini/ini.tmLanguage.json"
+    },
+    {
+      "name": "java",
+      "scopeName": "source.java",
+      "grammar": "textmate/java/java.tmLanguage.json"
+    },
+    {
+      "name": "javascriptreact",
+      "scopeName": "source.js.jsx",
+      "grammar": "textmate/javascript/JavaScriptReact.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.tag.js": "jsx-tags",
+        "meta.tag.without-attributes.js": "jsx-tags",
+        "meta.tag.attributes.js.jsx": "javascriptreact",
+        "meta.embedded.expression.js": "javascriptreact"
+      }
+    },
+    {
+      "name": "javascript",
+      "scopeName": "source.js",
+      "grammar": "textmate/javascript/JavaScript.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.tag.js": "jsx-tags",
+        "meta.tag.without-attributes.js": "jsx-tags",
+        "meta.tag.attributes.js": "javascript",
+        "meta.embedded.expression.js": "javascript"
+      }
+    },
+    {
+      "name": "source.js.regexp",
+      "scopeName": "source.js.regexp",
+      "grammar": "textmate/javascript/Regular Expressions (JavaScript).tmLanguage"
+    },
+    {
+      "name": "json",
+      "scopeName": "source.json",
+      "grammar": "textmate/json/JSON.tmLanguage.json"
+    },
+    {
+      "name": "jsonc",
+      "scopeName": "source.json.comments",
+      "grammar": "textmate/json/JSONC.tmLanguage.json"
+    },
+    {
+      "name": "jsonl",
+      "scopeName": "source.json.lines",
+      "grammar": "textmate/json/JSONL.tmLanguage.json"
+    },
+    {
+      "name": "snippets",
+      "scopeName": "source.json.comments.snippets",
+      "grammar": "textmate/json/snippets.tmLanguage.json"
+    },
+    {
+      "name": "julia",
+      "scopeName": "source.julia",
+      "grammar": "textmate/julia/julia.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.embedded.inline.cpp": "cpp",
+        "meta.embedded.inline.javascript": "javascript",
+        "meta.embedded.inline.python": "python",
+        "meta.embedded.inline.r": "r",
+        "meta.embedded.inline.sql": "sql"
+      }
+    },
+    {
+      "name": "tex",
+      "scopeName": "text.tex",
+      "grammar": "textmate/latex/TeX.tmLanguage.json"
+    },
+    {
+      "name": "latex",
+      "scopeName": "text.tex.latex",
+      "grammar": "textmate/latex/LaTeX.tmLanguage.json",
+      "embeddedLanguages": {
+        "source.cpp": "cpp_embedded_latex",
+        "source.css": "css",
+        "text.html": "html",
+        "source.java": "java",
+        "source.js": "javascript",
+        "source.julia": "julia",
+        "source.lua": "lua",
+        "source.python": "python",
+        "source.ruby": "ruby",
+        "source.ts": "typescript",
+        "text.xml": "xml",
+        "source.yaml": "yaml",
+        "meta.embedded.markdown_latex_combined": "markdown_latex_combined"
+      }
+    },
+    {
+      "name": "bibtex",
+      "scopeName": "text.bibtex",
+      "grammar": "textmate/latex/Bibtex.tmLanguage.json"
+    },
+    {
+      "name": "markdown_latex_combined",
+      "scopeName": "text.tex.markdown_latex_combined",
+      "grammar": "textmate/latex/markdown-latex-combined.tmLanguage.json"
+    },
+    {
+      "name": "cpp_embedded_latex",
+      "scopeName": "source.cpp.embedded.latex",
+      "grammar": "textmate/latex/cpp-grammar-bailout.tmLanguage.json"
+    },
+    {
+      "name": "less",
+      "scopeName": "source.css.less",
+      "grammar": "textmate/less/less.tmLanguage.json"
+    },
+    {
+      "name": "log",
+      "scopeName": "text.log",
+      "grammar": "textmate/log/log.tmLanguage.json"
+    },
+    {
+      "name": "lua",
+      "scopeName": "source.lua",
+      "grammar": "textmate/lua/lua.tmLanguage.json"
+    },
+    {
+      "name": "makefile",
+      "scopeName": "source.makefile",
+      "grammar": "textmate/make/make.tmLanguage.json"
+    },
+    {
+      "name": "markdown",
+      "scopeName": "text.html.markdown",
+      "grammar": "textmate/markdown-basics/markdown.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.embedded.block.html": "html",
+        "source.js": "javascript",
+        "source.css": "css",
+        "meta.embedded.block.frontmatter": "yaml",
+        "meta.embedded.block.css": "css",
+        "meta.embedded.block.ini": "ini",
+        "meta.embedded.block.java": "java",
+        "meta.embedded.block.lua": "lua",
+        "meta.embedded.block.makefile": "makefile",
+        "meta.embedded.block.perl": "perl",
+        "meta.embedded.block.r": "r",
+        "meta.embedded.block.ruby": "ruby",
+        "meta.embedded.block.php": "php",
+        "meta.embedded.block.sql": "sql",
+        "meta.embedded.block.vs_net": "vs_net",
+        "meta.embedded.block.xml": "xml",
+        "meta.embedded.block.xsl": "xsl",
+        "meta.embedded.block.yaml": "yaml",
+        "meta.embedded.block.dosbatch": "dosbatch",
+        "meta.embedded.block.clojure": "clojure",
+        "meta.embedded.block.coffee": "coffee",
+        "meta.embedded.block.c": "c",
+        "meta.embedded.block.cpp": "cpp",
+        "meta.embedded.block.diff": "diff",
+        "meta.embedded.block.dockerfile": "dockerfile",
+        "meta.embedded.block.go": "go",
+        "meta.embedded.block.groovy": "groovy",
+        "meta.embedded.block.pug": "jade",
+        "meta.embedded.block.javascript": "javascript",
+        "meta.embedded.block.json": "json",
+        "meta.embedded.block.jsonc": "jsonc",
+        "meta.embedded.block.latex": "latex",
+        "meta.embedded.block.less": "less",
+        "meta.embedded.block.objc": "objc",
+        "meta.embedded.block.scss": "scss",
+        "meta.embedded.block.perl6": "perl6",
+        "meta.embedded.block.powershell": "powershell",
+        "meta.embedded.block.python": "python",
+        "meta.embedded.block.rust": "rust",
+        "meta.embedded.block.scala": "scala",
+        "meta.embedded.block.shellscript": "shellscript",
+        "meta.embedded.block.typescript": "typescript",
+        "meta.embedded.block.typescriptreact": "typescriptreact",
+        "meta.embedded.block.csharp": "csharp",
+        "meta.embedded.block.fsharp": "fsharp"
+      }
+    },
+    {
+      "name": "markdown-math",
+      "scopeName": "text.html.markdown.math",
+      "grammar": "textmate/markdown-math/md-math.tmLanguage.json"
+    },
+    {
+      "name": "markdown.math.block",
+      "scopeName": "markdown.math.block",
+      "grammar": "textmate/markdown-math/md-math-block.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.embedded.math.markdown": "latex"
+      }
+    },
+    {
+      "name": "markdown.math.inline",
+      "scopeName": "markdown.math.inline",
+      "grammar": "textmate/markdown-math/md-math-inline.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.embedded.math.markdown": "latex",
+        "punctuation.definition.math.end.markdown": "latex"
+      }
+    },
+    {
+      "name": "markdown.math.codeblock",
+      "scopeName": "markdown.math.codeblock",
+      "grammar": "textmate/markdown-math/md-math-fence.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.embedded.math.markdown": "latex"
+      }
+    },
+    {
+      "name": "objective-c",
+      "scopeName": "source.objc",
+      "grammar": "textmate/objective-c/objective-c.tmLanguage.json"
+    },
+    {
+      "name": "objective-cpp",
+      "scopeName": "source.objcpp",
+      "grammar": "textmate/objective-c/objective-c++.tmLanguage.json"
+    },
+    {
+      "name": "perl",
+      "scopeName": "source.perl",
+      "grammar": "textmate/perl/perl.tmLanguage.json"
+    },
+    {
+      "name": "raku",
+      "scopeName": "source.perl.6",
+      "grammar": "textmate/perl/perl6.tmLanguage.json"
+    },
+    {
+      "name": "source.php",
+      "scopeName": "source.php",
+      "grammar": "textmate/php/php.tmLanguage.json"
+    },
+    {
+      "name": "php",
+      "scopeName": "text.html.php",
+      "grammar": "textmate/php/html.tmLanguage.json",
+      "embeddedLanguages": {
+        "text.html": "html",
+        "source.php": "php",
+        "source.sql": "sql",
+        "text.xml": "xml",
+        "source.js": "javascript",
+        "source.json": "json",
+        "source.css": "css"
+      }
+    },
+    {
+      "name": "powershell",
+      "scopeName": "source.powershell",
+      "grammar": "textmate/powershell/powershell.tmLanguage.json"
+    },
+    {
+      "name": "jade",
+      "scopeName": "text.pug",
+      "grammar": "textmate/pug/pug.tmLanguage.json"
+    },
+    {
+      "name": "python",
+      "scopeName": "source.python",
+      "grammar": "textmate/python/MagicPython.tmLanguage.json"
+    },
+    {
+      "name": "source.regexp.python",
+      "scopeName": "source.regexp.python",
+      "grammar": "textmate/python/MagicRegExp.tmLanguage.json"
+    },
+    {
+      "name": "r",
+      "scopeName": "source.r",
+      "grammar": "textmate/r/r.tmLanguage.json"
+    },
+    {
+      "name": "razor",
+      "scopeName": "text.html.cshtml",
+      "grammar": "textmate/razor/cshtml.tmLanguage.json",
+      "embeddedLanguages": {
+        "section.embedded.source.cshtml": "csharp",
+        "source.css": "css",
+        "source.js": "javascript"
+      }
+    },
+    {
+      "name": "restructuredtext",
+      "scopeName": "source.rst",
+      "grammar": "textmate/restructuredtext/rst.tmLanguage.json"
+    },
+    {
+      "name": "ruby",
+      "scopeName": "source.ruby",
+      "grammar": "textmate/ruby/ruby.tmLanguage.json"
+    },
+    {
+      "name": "rust",
+      "scopeName": "source.rust",
+      "grammar": "textmate/rust/rust.tmLanguage.json"
+    },
+    {
+      "name": "scss",
+      "scopeName": "source.css.scss",
+      "grammar": "textmate/scss/scss.tmLanguage.json"
+    },
+    {
+      "name": "source.sassdoc",
+      "scopeName": "source.sassdoc",
+      "grammar": "textmate/scss/sassdoc.tmLanguage.json"
+    },
+    {
+      "name": "search-result",
+      "scopeName": "text.searchResult",
+      "grammar": "textmate/search-result/searchResult.tmLanguage.json"
+    },
+    {
+      "name": "shaderlab",
+      "scopeName": "source.shaderlab",
+      "grammar": "textmate/shaderlab/shaderlab.tmLanguage.json"
+    },
+    {
+      "name": "shellscript",
+      "scopeName": "source.shell",
+      "grammar": "textmate/shellscript/shell-unix-bash.tmLanguage.json"
+    },
+    {
+      "name": "sql",
+      "scopeName": "source.sql",
+      "grammar": "textmate/sql/sql.tmLanguage.json"
+    },
+    {
+      "name": "swift",
+      "scopeName": "source.swift",
+      "grammar": "textmate/swift/swift.tmLanguage.json"
+    },
+    {
+      "name": "typescript",
+      "scopeName": "source.ts",
+      "grammar": "textmate/typescript-basics/TypeScript.tmLanguage.json"
+    },
+    {
+      "name": "typescriptreact",
+      "scopeName": "source.tsx",
+      "grammar": "textmate/typescript-basics/TypeScriptReact.tmLanguage.json",
+      "embeddedLanguages": {
+        "meta.tag.tsx": "jsx-tags",
+        "meta.tag.without-attributes.tsx": "jsx-tags",
+        "meta.tag.attributes.tsx": "typescriptreact",
+        "meta.embedded.expression.tsx": "typescriptreact"
+      }
+    },
+    {
+      "name": "documentation.injection.ts",
+      "scopeName": "documentation.injection.ts",
+      "grammar": "textmate/typescript-basics/jsdoc.ts.injection.tmLanguage.json"
+    },
+    {
+      "name": "documentation.injection.js.jsx",
+      "scopeName": "documentation.injection.js.jsx",
+      "grammar": "textmate/typescript-basics/jsdoc.js.injection.tmLanguage.json"
+    },
+    {
+      "name": "vb",
+      "scopeName": "source.asp.vb.net",
+      "grammar": "textmate/vb/asp-vb-net.tmLanguage.json"
+    },
+    {
+      "name": "xml",
+      "scopeName": "text.xml",
+      "grammar": "textmate/xml/xml.tmLanguage.json"
+    },
+    {
+      "name": "xsl",
+      "scopeName": "text.xml.xsl",
+      "grammar": "textmate/xml/xsl.tmLanguage.json"
+    },
+    {
+      "name": "dockercompose",
+      "scopeName": "source.yaml",
+      "grammar": "textmate/yaml/yaml.tmLanguage.json"
+    },
+    {
+      "grammar": "textmate/kotlin/syntaxes/Kotlin.tmLanguage",
+      "name": "kotlin",
+      "scopeName": "source.kotlin",
+      "languageConfiguration": "textmate/kotlin/language-configuration.json"
+    }
+  ]
+}

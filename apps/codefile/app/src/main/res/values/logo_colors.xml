@@ -1,0 +1,7 @@
+<resources>
+    <color name="logo_surface">#1C2330</color>
+    <color name="logo_primary">#B4F272</color>
+    <color name="logo_primary_container">#151A24</color>
+    <color name="logo_on_primary_container">#E1E7EF</color>
+    <color name="logo_tertiary">#82CCEC</color>
+</resources>

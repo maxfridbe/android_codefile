@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+  <!-- All strokes fit the central 66dp safe circle under launcher masks. -->
+  <group android:pivotX="50" android:pivotY="50" android:scaleX="0.82" android:scaleY="0.82" android:translateX="4" android:translateY="4">
+    <path android:pathData="M32,24H24V32 M68,24H76V32 M24,68V76H32 M76,68V76H68"
+        android:strokeColor="@color/logo_primary" android:strokeWidth="3.5" android:strokeLineCap="round"/>
+    <path android:pathData="M68,50A18,18 0,1 1,32 50A18,18 0,1 1,68 50Z"
+        android:fillColor="@color/logo_primary_container" android:strokeColor="@color/logo_primary" android:strokeWidth="2"/>
+    <path android:pathData="M44,45L39,50L44,55 M56,45L61,50L56,55"
+        android:strokeColor="@color/logo_on_primary_container" android:strokeWidth="2.5" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M52,43L48,57" android:strokeColor="@color/logo_tertiary"
+        android:strokeWidth="2" android:strokeLineCap="round"/>
+  </group>
+</vector>

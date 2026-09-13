@@ -1,0 +1,18 @@
+# Gradle / Android build products (builds run in Docker, nothing here is source)
+**/build/
+**/.gradle/
+output/
+local.properties
+
+# IDE
+.idea/
+*.iml
+keystore/
+
+# Local agent state and signing material
+.agents/
+.codex/
+*.keystore
+*.jks
+.env
+.env.*
