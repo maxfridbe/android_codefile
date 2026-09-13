@@ -143,7 +143,8 @@ public class NativeActivityTest {
           View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY));
       workspace.layout(0, 0, w, h);
-      assertEquals(a.dp(300), workspace.getChildAt(1).getLeft());
+      assertEquals(0, workspace.getChildAt(1).getLeft());
+      assertTrue(workspace.getChildAt(1).getTop() > 0);
       w = a.dp(400);
       workspace.measure(
           View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY),
@@ -338,10 +339,13 @@ public class NativeActivityTest {
   }
 
   private void assertFlowBounds(View view) {
-    if (view instanceof ActionFlow) {
+    if (view instanceof ActionFlow
+        || view instanceof RibbonPage
+        || view.getClass().getSimpleName().equals("CommandGroup")) {
       ViewGroup flow = (ViewGroup) view;
       for (int i = 0; i < flow.getChildCount(); i++) {
         View child = flow.getChildAt(i);
+        if (child.getVisibility() != View.VISIBLE) continue;
         assertTrue(child.getLeft() >= 0);
         assertTrue(child.getRight() <= flow.getWidth());
         assertTrue(child.getBottom() <= flow.getHeight());
@@ -515,6 +519,41 @@ public class NativeActivityTest {
               .getColorScheme()
               .getColor(
                   io.github.rosemoe.sora.widget.schemes.EditorColorScheme.MATCHED_TEXT_BACKGROUND));
+    }
+  }
+
+  @Test
+  @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+  public void officeRibbonKeepsGroupBaselinesAndTabSizingOnTablet() throws Exception {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      for (String tab : new String[] {"File", "View", "Code"}) {
+        button(root, tab).performClick();
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(1200, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1200, 900);
+        assertTrue(button(root, tab).isSelected());
+        assertTrue(button(root, tab).getWidth() <= activity.dp(88));
+        java.lang.reflect.Field pages = MainActivity.class.getDeclaredField("ribbonPages");
+        pages.setAccessible(true);
+        for (View page : (java.util.List<View>) pages.get(activity))
+          if (page.isShown()) {
+            assertEquals(activity.dp(120), page.getHeight());
+            ViewGroup groups = (ViewGroup) page;
+            assertEquals(groups.getChildAt(0).getTop(), groups.getChildAt(1).getTop());
+            assertEquals(groups.getChildAt(0).getBottom(), groups.getChildAt(1).getBottom());
+            assertFlowBounds(page);
+          }
+      }
+      android.graphics.Bitmap bitmap =
+          android.graphics.Bitmap.createBitmap(1200, 900, android.graphics.Bitmap.Config.ARGB_8888);
+      root.draw(new android.graphics.Canvas(bitmap));
+      try (FileOutputStream stream = new FileOutputStream("build/native-tablet-ribbon.png")) {
+        assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream));
+      }
     }
   }
 }

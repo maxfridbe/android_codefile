@@ -15,8 +15,7 @@ final class FoldWorkspace extends android.view.ViewGroup {
   protected void onMeasure(int widthSpec, int heightSpec) {
     int w = MeasureSpec.getSize(widthSpec), h = MeasureSpec.getSize(heightSpec);
     setMeasuredDimension(w, h);
-    mode = w >= dp(840) ? 1 : 0;
-    rail = dp(300);
+    mode = 0; // A ribbon runs across the window; separating hinges override its placement.
     int[] origin = new int[2];
     getLocationInWindow(origin);
     if (hinge != null) {
@@ -33,14 +32,14 @@ final class FoldWorkspace extends android.view.ViewGroup {
         cutEnd = local.bottom;
       }
     }
-    if (mode == 1 || mode == 2) {
+    if (mode == 2) {
       getChildAt(0)
           .measure(
               MeasureSpec.makeMeasureSpec(rail, MeasureSpec.EXACTLY),
               MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
       getChildAt(1)
           .measure(
-              MeasureSpec.makeMeasureSpec(w - (mode == 2 ? cutEnd : rail), MeasureSpec.EXACTLY),
+              MeasureSpec.makeMeasureSpec(w - cutEnd, MeasureSpec.EXACTLY),
               MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY));
     } else if (mode == 3) {
       getChildAt(0)
@@ -66,9 +65,9 @@ final class FoldWorkspace extends android.view.ViewGroup {
 
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
     int w = r - l, h = b - t;
-    if (mode == 1 || mode == 2) {
+    if (mode == 2) {
       getChildAt(0).layout(0, 0, rail, h);
-      getChildAt(1).layout(mode == 2 ? cutEnd : rail, 0, w, h);
+      getChildAt(1).layout(cutEnd, 0, w, h);
     } else if (mode == 3) {
       getChildAt(1).layout(0, 0, w, cutStart);
       getChildAt(0).layout(0, cutEnd, w, h);

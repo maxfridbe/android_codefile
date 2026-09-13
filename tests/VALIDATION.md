@@ -1,15 +1,16 @@
-# Native release validation — v26.0912.004
+# Native release validation — v26.0912.005
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9751004`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9751005`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 28 JUnit/Robolectric tests: passed, no failures or skips.
+- 29 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
 - Theme selection immediately repaints the existing editor without replacing its document.
+- Office-style ribbon groups use a stable 120dp height, shared caption baselines, 96dp primary tiles and two 48dp secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Editor drag events collapse and reopen the ribbon.
-- Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass.
+- Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
 - Settings groups expand/collapse; native viewer and Settings bitmaps visually inspected. Header logo removed; Settings Save remains outside its scrolling content.
 - Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing, and highlight-color persistence across configuration refresh.
@@ -22,7 +23,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9751004`; minimum Android API 2
 Release SHA-256:
 
 ```
-f69d87aad8f7996357122770cba27c1ddb4d47b51520e460954e62e0b70c860f
+d9aa146be057921c1b92391cedc13c1e7a0de555c364775f3deace1abfe62ce0
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

@@ -1,13 +1,13 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0912.004`
+`com.TechHurts.CodeFile` · `v26.0912.005`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
 ## Features
 
-- Responsive phone, tablet, split-screen and foldable layouts. Expanded windows use a side control pane; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
-- File / View / Code ribbon with wrapping 48dp actions. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. The viewer header has no logo.
+- Responsive phone, tablet, split-screen and foldable layouts. The ribbon spans the top of normal phone/tablet windows; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
+- Office-style File / View / Code ribbon with flat, underlined tabs, 120dp command groups, 96dp primary tiles, two stacked 48dp secondary actions, separators and aligned group captions. Narrow hinge panes use group menus rather than clipping commands. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. The viewer header has no logo.
 - Read-only, selectable code with native scrolling, line numbers, wrapping, bracket matching, block guides, current-line highlighting, adjustable font/spacing, and whitespace display.
 - 68 bundled language definitions / 78 TextMate grammars, including Java, Kotlin, JS/TS/JSX/TSX, Python, C/C++, C#, Rust, Go, Swift, PHP, HTML/XML, CSS, SQL, shell, Markdown, JSON/YAML/TOML and more. Manual language selection; unknown formats use plain text.
 - System document picker, multiple open files, paste, VIEW/EDIT, SEND/SEND_MULTIPLE, and PROCESS_TEXT intents. Original documents are never overwritten. Export creates a UTF-8 copy.
@@ -70,3 +70,5 @@ Grammar provenance: VS Code 1.95.3 extensions (MIT and upstream notices), plus K
 Native Java source is formatted with google-java-format 1.22.0. `checkNativeStyle` enforces maximum nesting for `if`, `for`, and `try` blocks in CI. Ribbon layout, fold layout, table rendering and data formatting live in separate classes; formatting and table background work use named methods to avoid nested callback chains. The installed `android-dev` skill includes a Java-specific reference used during this review.
 
 YAML dependency: SnakeYAML Engine 2.9, Apache-2.0. The app composes data nodes and emits them without constructing arbitrary Java objects. Its license is bundled with Settings → About & diagnostics → Open-source licenses.
+
+Ribbon design references: [Microsoft command sizing and group collapse](https://learn.microsoft.com/en-us/office/dev/add-ins/design/add-in-commands) and the classic Word ribbon's large-primary/stacked-secondary hierarchy. Implemented with native Android Views; no desktop or browser control is embedded.

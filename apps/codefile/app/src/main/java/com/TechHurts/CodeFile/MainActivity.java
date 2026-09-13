@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
   private LinearLayout root, documentRow, controls, reader;
   private FoldWorkspace workspace;
   private LinearLayout ribbonBody;
+  private final List<RibbonTab> ribbonTabButtons = new ArrayList<>();
   private boolean ribbonCollapsed;
   private int ribbonTravel;
   private int ribbonTab;
@@ -278,6 +279,16 @@ public class MainActivity extends Activity {
     return b;
   }
 
+  private Button quickAction(String name, int glyph, Runnable action) {
+    Button button = button(name, glyph, action);
+    button.setText(iconText(glyph, ""));
+    button.setTextSize(18);
+    button.setBackgroundColor(Color.TRANSPARENT);
+    button.setTag("quickAction");
+    button.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
+    return button;
+  }
+
   /** Flowing native ribbon: every action stays inside the available width. */
   private View flow(LinearLayout buttons) {
     ActionFlow view = new ActionFlow(this);
@@ -294,7 +305,19 @@ public class MainActivity extends Activity {
   }
 
   private void ribbonPage(LinearLayout actions) {
-    View page = flow(actions);
+    List<Button> commands = new ArrayList<>();
+    while (actions.getChildCount() > 0) {
+      Button command = (Button) actions.getChildAt(0);
+      actions.removeView(command);
+      commands.add(command);
+    }
+    String[][] captions = {
+      {"Documents", "Share & export"}, {"Reading", "Zoom"}, {"Source", "Navigation"}
+    };
+    int[][][] order = {{{0, 1, 4}, {2, 5, 3}}, {{0, 1, 2}, {5, 4, 3}}, {{1, 0, 2}, {3, 4, 5}}};
+    int index = ribbonPages.size();
+    RibbonPage page = new RibbonPage(this, captions[index], commands, order[index]);
+    page.setColors(panel, fg, muted, accent);
     ribbonPages.add(page);
     ribbonBody.addView(page, new LinearLayout.LayoutParams(-1, -2));
     page.setVisibility(ribbonPages.size() - 1 == ribbonTab ? View.VISIBLE : View.GONE);
@@ -303,6 +326,8 @@ public class MainActivity extends Activity {
   private void selectRibbon(int index) {
     ribbonTab = index;
     ribbonTravel = 0;
+    for (int i = 0; i < ribbonTabButtons.size(); i++)
+      ribbonTabButtons.get(i).setSelected(i == index);
     setRibbonCollapsed(false);
     for (int i = 0; i < ribbonPages.size(); i++)
       ribbonPages.get(i).setVisibility(i == index ? View.VISIBLE : View.GONE);
@@ -311,6 +336,7 @@ public class MainActivity extends Activity {
   private void setRibbonCollapsed(boolean collapsed) {
     ribbonCollapsed = collapsed;
     if (ribbonBody != null) ribbonBody.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+    if (documentRow != null) documentRow.setVisibility(collapsed ? View.GONE : View.VISIBLE);
     if (ribbonToggle != null) {
       ribbonToggle.setText(iconText(collapsed ? 0xf0140 : 0xf0143, ""));
       ribbonToggle.setContentDescription(collapsed ? "Expand ribbon" : "Collapse ribbon");
@@ -355,9 +381,9 @@ public class MainActivity extends Activity {
     root = column();
     root.setPadding(dp(8), 0, dp(8), dp(4));
     LinearLayout header = row();
-    header.addView(label("CodeFile", 23, fg), new LinearLayout.LayoutParams(0, dp(58), 1));
-    header.addView(button("Search", 0xf0349, this::find));
-    header.addView(button("Settings", 0xf0493, this::settings));
+    header.addView(label("CodeFile", 16, fg), new LinearLayout.LayoutParams(0, dp(48), 1));
+    header.addView(quickAction("Search", 0xf0349, this::find));
+    header.addView(quickAction("Settings", 0xf0493, this::settings));
     controls = column();
     controls.addView(header);
     reader = column();
@@ -367,17 +393,26 @@ public class MainActivity extends Activity {
     workspace.addView(scrolling(controls));
     workspace.addView(reader);
     root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
-    LinearLayout ribbonTabs = row();
+    LinearLayout ribbonTabs = new RibbonTabs(this);
     String[] groups = {"File", "View", "Code"};
     int[] icons = {0xf0224, 0xf06d0, 0xf0174};
+    ribbonTabButtons.clear();
     for (int i = 0; i < groups.length; i++) {
       final int index = i;
-      Button tabButton = button(groups[i], icons[i], () -> selectRibbon(index));
+      RibbonTab tabButton = new RibbonTab(this);
+      tabButton.setText(iconText(icons[i], groups[i]));
+      tabButton.setContentDescription(groups[i]);
+      tabButton.setOnClickListener(v -> selectRibbon(index));
+      tabButton.setColors(fg, muted, accent, panel);
+      tabButton.setSelected(i == ribbonTab);
+      ribbonTabButtons.add(tabButton);
       LinearLayout.LayoutParams tabLayout = new LinearLayout.LayoutParams(0, dp(48), 1);
       tabLayout.setMargins(dp(2), 0, dp(2), 0);
       ribbonTabs.addView(tabButton, tabLayout);
     }
-    ribbonToggle = button("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
+    ribbonToggle =
+        quickAction("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
+    ribbonTabs.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
     ribbonTabs.addView(ribbonToggle);
     controls.addView(ribbonTabs);
     ribbonBody = column();
@@ -398,7 +433,7 @@ public class MainActivity extends Activity {
     documentRow = row();
     tabs = new Spinner(this);
     documentRow.addView(tabs, new LinearLayout.LayoutParams(0, dp(48), 1));
-    documentRow.addView(button("Close file", 0xf0156, this::closeCurrent));
+    documentRow.addView(quickAction("Close file", 0xf0156, this::closeCurrent));
     controls.addView(documentRow);
     title = label("", 11, muted);
     reader.addView(title);
@@ -444,7 +479,7 @@ public class MainActivity extends Activity {
     ribbonPage(nav);
     setRibbonCollapsed(ribbonCollapsed);
     navStatus = label("Native viewer · navigation disabled", 10, muted);
-    controls.addView(navStatus);
+    reader.addView(navStatus);
     LinearLayout code = row();
     editor = new CodeEditor(this);
     editor.setContentDescription("Native source code viewer");
@@ -934,8 +969,21 @@ public class MainActivity extends Activity {
 
   private void recolor(View v) {
     if (v instanceof CodeEditor) return;
+    if (v instanceof RibbonPage) {
+      ((RibbonPage) v).setColors(panel, fg, muted, accent);
+      return;
+    }
+    if (v instanceof RibbonTab) {
+      ((RibbonTab) v).setColors(fg, muted, accent, panel);
+      return;
+    }
     if (v instanceof Spinner)
       ((Spinner) v).setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(panel));
+    if ("quickAction".equals(v.getTag())) {
+      ((Button) v).setTextColor(accent);
+      v.setBackgroundColor(Color.TRANSPARENT);
+      return;
+    }
     if (v instanceof Button) {
       ((Button) v).setTextColor(accent);
       GradientDrawable shape = new GradientDrawable();
