@@ -1,0 +1,61 @@
+{
+  "name": "Solarized dark",
+  "settings": [
+    {
+      "settings": {
+        "background": "#002B36",
+        "foreground": "#AFC2C4",
+        "selection": "#073642",
+        "lineHighlight": "#073642"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#8BA4AA"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#BFA63D"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#6FAEA9"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#D89778"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#7AA9CF"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#2AA198"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#AFC2C4"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

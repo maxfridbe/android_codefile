@@ -32,19 +32,23 @@ final class RibbonPage extends ViewGroup {
     this.foreground = foreground;
     this.muted = muted;
     this.accent = accent;
-    setBackgroundColor(surface);
+    GradientDrawable background = new GradientDrawable();
+    background.setColor(surface);
+    background.setCornerRadius(dp(6));
+    setBackground(background);
+    setClipToOutline(true);
     for (CommandGroup group : groups) group.tint();
     invalidate();
   }
 
   protected void onMeasure(int ws, int hs) {
     int width = MeasureSpec.getSize(ws);
-    int each = Math.min(width / Math.max(1, groups.size()), dp(228));
+    int each = Math.min(width / Math.max(1, groups.size()), dp(184));
     for (CommandGroup group : groups)
       group.measure(
           MeasureSpec.makeMeasureSpec(each, MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(dp(120), MeasureSpec.EXACTLY));
-    setMeasuredDimension(width, dp(120));
+          MeasureSpec.makeMeasureSpec(dp(112), MeasureSpec.EXACTLY));
+    setMeasuredDimension(width, dp(112));
   }
 
   protected void onLayout(boolean changed, int l, int t, int r, int b) {
@@ -60,16 +64,26 @@ final class RibbonPage extends ViewGroup {
     return Math.round(value * getResources().getDisplayMetrics().density);
   }
 
+  private int blend(int color, int other, float amount) {
+    return Color.rgb(
+        Math.round(Color.red(color) * (1 - amount) + Color.red(other) * amount),
+        Math.round(Color.green(color) * (1 - amount) + Color.green(other) * amount),
+        Math.round(Color.blue(color) * (1 - amount) + Color.blue(other) * amount));
+  }
+
   private Drawable commandBackground() {
     GradientDrawable fill = new GradientDrawable();
-    fill.setColor(surface);
-    fill.setCornerRadius(dp(3));
+    fill.setColors(
+        new int[] {blend(surface, 0xffffffff, .045f), blend(surface, 0xff000000, .055f)});
+    fill.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
+    fill.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
+    fill.setCornerRadius(dp(5));
     return new RippleDrawable(ColorStateList.valueOf((accent & 0xffffff) | 0x33000000), fill, null);
   }
 
   private String shortLabel(Button button) {
     String label = String.valueOf(button.getContentDescription());
-    if (label.equals("Enable navigation")) return "Enable";
+    if (label.equals("Service info")) return "Service";
     if (label.equals("Navigation")) return "Browse";
     return label;
   }
@@ -103,7 +117,7 @@ final class RibbonPage extends ViewGroup {
         command.setText(commandText(command, i == 0));
         command.setTextSize(11);
         command.setGravity(i == 0 ? Gravity.CENTER : Gravity.CENTER_VERTICAL | Gravity.START);
-        command.setPadding(dp(5), 0, dp(3), 0);
+        command.setPadding(dp(4), 0, dp(2), 0);
         command.setMinimumWidth(0);
         command.setMinWidth(0);
         command.setMaxLines(2);
@@ -157,20 +171,20 @@ final class RibbonPage extends ViewGroup {
       }
       launcher.setTextColor(foreground);
       launcher.setBackground(commandBackground());
-      rule.setColor((muted & 0xffffff) | 0x55000000);
+      rule.setColor((accent & 0xffffff) | 0x65000000);
       invalidate();
     }
 
     protected void onMeasure(int ws, int hs) {
       int w = MeasureSpec.getSize(ws);
       compact = w < dp(138);
-      int primary = dp(58), secondary = Math.max(0, w - primary - dp(12));
+      int primary = dp(56), secondary = Math.max(0, w - dp(65));
       for (int i = 0; i < commands.size(); i++) {
         Button button = commands.get(i);
         button.setVisibility(compact ? GONE : VISIBLE);
         button.measure(
             MeasureSpec.makeMeasureSpec(i == 0 ? primary : secondary, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(dp(i == 0 ? 96 : 48), MeasureSpec.EXACTLY));
+            MeasureSpec.makeMeasureSpec(dp(i == 0 ? 92 : 44), MeasureSpec.EXACTLY));
       }
       launcher.setVisibility(compact ? VISIBLE : GONE);
       launcher.measure(
@@ -178,22 +192,22 @@ final class RibbonPage extends ViewGroup {
           MeasureSpec.makeMeasureSpec(dp(96), MeasureSpec.EXACTLY));
       caption.measure(
           MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(dp(20), MeasureSpec.EXACTLY));
-      setMeasuredDimension(w, dp(120));
+          MeasureSpec.makeMeasureSpec(dp(16), MeasureSpec.EXACTLY));
+      setMeasuredDimension(w, dp(112));
     }
 
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
       int w = r - l;
-      commands.get(0).layout(dp(6), dp(2), dp(64), dp(98));
+      commands.get(0).layout(dp(3), dp(2), dp(59), dp(94));
       for (int i = 1; i < commands.size(); i++)
-        commands.get(i).layout(dp(64), dp(2 + 48 * (i - 1)), w - dp(6), dp(2 + 48 * i));
+        commands.get(i).layout(dp(62), dp(2 + 48 * (i - 1)), w - dp(3), dp(46 + 48 * (i - 1)));
       launcher.layout(dp(6), dp(2), w - dp(6), dp(98));
-      caption.layout(0, dp(100), w, dp(120));
+      caption.layout(0, dp(96), w, dp(112));
     }
 
     protected void onDraw(Canvas canvas) {
       super.onDraw(canvas);
-      canvas.drawLine(getWidth() - 1, dp(8), getWidth() - 1, dp(112), rule);
+      canvas.drawLine(getWidth() - 1, dp(8), getWidth() - 1, dp(104), rule);
     }
   }
 }

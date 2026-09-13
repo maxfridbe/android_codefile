@@ -293,11 +293,27 @@ public class NativeActivityTest {
 
   @Test
   @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+  @Config(sdk = 28, qualifiers = "w480dp-h1000dp")
   public void nativePortraitRendersToBitmap() throws Exception {
     try (ActivityController<MainActivity> c =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity a = c.get();
       View root = a.getWindow().getDecorView();
+      java.lang.reflect.Method add =
+          MainActivity.class.getDeclaredMethod(
+              "addDocument", String.class, String.class, String.class, String.class);
+      add.setAccessible(true);
+      add.invoke(
+          a,
+          "Reflow.java",
+          "/** A long source line must reflow without changing its logical line number: this"
+              + " comment deliberately extends beyond the width of a phone screen and remains fully"
+              + " readable through native text layout. */\n"
+              + "class Reflow {\n"
+              + "    int answer = 42;\n"
+              + "}\n",
+          "UTF-8",
+          "");
       int width = 480, height = 1000;
       root.measure(
           View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -319,7 +335,14 @@ public class NativeActivityTest {
       }
       assertTrue("Grammars initialized", ready.getBoolean(a));
       assertTrue(
-          "Long source lines visibly reflow into multiple display rows",
+          "Reflow: width="
+              + renderedEditor.getWidth()
+              + " height="
+              + renderedEditor.getHeight()
+              + " wrap="
+              + renderedEditor.isWordwrap()
+              + " rows="
+              + renderedEditor.getLayout().getRowCount(),
           renderedEditor.getLayout().getRowCount() > renderedEditor.getText().getLineCount());
       for (int frame = 0; frame < 20; frame++) {
         Thread.sleep(50);
@@ -367,7 +390,7 @@ public class NativeActivityTest {
       CodeEditor editor = find(root, CodeEditor.class);
       for (int width : new int[] {320, 360, 411, 600, 840})
         for (String group : new String[] {"File", "View", "Code"}) {
-          button(root, group).performClick();
+          expandTab(root, group);
           root.measure(
               View.MeasureSpec.makeMeasureSpec(activity.dp(width), View.MeasureSpec.EXACTLY),
               View.MeasureSpec.makeMeasureSpec(activity.dp(900), View.MeasureSpec.EXACTLY));
@@ -380,11 +403,11 @@ public class NativeActivityTest {
               0,
               0,
               0,
-              activity.dp(80),
+              activity.dp(180),
               io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG));
       assertNotNull(button(root, "Expand ribbon"));
       assertFalse(button(root, "Format").isShown());
-      button(root, "Code").performClick();
+      expandTab(root, "Code");
       assertTrue(button(root, "Format").isShown());
       editor.dispatchEvent(
           new io.github.rosemoe.sora.event.ScrollEvent(
@@ -530,7 +553,7 @@ public class NativeActivityTest {
       MainActivity activity = controller.get();
       View root = activity.getWindow().getDecorView();
       for (String tab : new String[] {"File", "View", "Code"}) {
-        button(root, tab).performClick();
+        expandTab(root, tab);
         root.measure(
             View.MeasureSpec.makeMeasureSpec(1200, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY));
@@ -541,7 +564,7 @@ public class NativeActivityTest {
         pages.setAccessible(true);
         for (View page : (java.util.List<View>) pages.get(activity))
           if (page.isShown()) {
-            assertEquals(activity.dp(120), page.getHeight());
+            assertEquals(activity.dp(112), page.getHeight());
             ViewGroup groups = (ViewGroup) page;
             assertEquals(groups.getChildAt(0).getTop(), groups.getChildAt(1).getTop());
             assertEquals(groups.getChildAt(0).getBottom(), groups.getChildAt(1).getBottom());
@@ -554,6 +577,89 @@ public class NativeActivityTest {
       try (FileOutputStream stream = new FileOutputStream("build/native-tablet-ribbon.png")) {
         assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream));
       }
+    }
+  }
+
+  private void expandTab(View root, String name) {
+    Button tab = button(root, name);
+    tab.performClick();
+    shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+    CollapsingRibbon body = find(root, CollapsingRibbon.class);
+    if (body.fraction() < .99f) {
+      tab.performClick();
+      shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+    }
+  }
+
+  @Test
+  public void activeTabTogglesAnimatedRibbonButFilenameStaysVisible() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      CollapsingRibbon ribbon = find(root, CollapsingRibbon.class);
+      expandTab(root, "File");
+      assertEquals(1f, ribbon.fraction(), .001f);
+      button(root, "File").performClick();
+      shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+      assertEquals(0f, ribbon.fraction(), .001f);
+      assertTrue(button(root, "Close file").isShown());
+      button(root, "File").performClick();
+      shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+      assertEquals(1f, ribbon.fraction(), .001f);
+      root.measure(
+          View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 480, 1000);
+      ribbon.consumeScroll(activity.dp(30));
+      assertTrue(ribbon.fraction() > 0 && ribbon.fraction() < 1);
+      float partial = ribbon.fraction();
+      ribbon.consumeScroll(-activity.dp(10));
+      assertTrue(ribbon.fraction() > partial);
+      assertFalse(find(root, CodeEditor.class).isLineNumberPinned());
+    }
+  }
+
+  private void finger(
+      LineSelectionEditor editor, long start, long time, int action, float x, float y) {
+    MotionEvent event = MotionEvent.obtain(start, time, action, x, y, 0);
+    editor.dispatchTouchEvent(event);
+    event.recycle();
+  }
+
+  @Test
+  public void slowGutterDragSelectsWholeLinesAndShowsSelectionActions() throws Exception {
+    Intent intent =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, "one\nsecond\nthird\nlast\n");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, intent).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      LineSelectionEditor editor = find(root, LineSelectionEditor.class);
+      shadowOf(Looper.getMainLooper()).idle();
+      editor.measure(
+          View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY));
+      editor.layout(0, 0, 480, 600);
+      int height = editor.getRowHeight();
+      long start = android.os.SystemClock.uptimeMillis();
+      finger(editor, start, start, MotionEvent.ACTION_DOWN, 2, height * 2.5f);
+      finger(editor, start, start + 1500, MotionEvent.ACTION_MOVE, 2, height * 1.5f);
+      finger(editor, start, start + 2000, MotionEvent.ACTION_UP, 2, height * 1.5f);
+      shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+      assertEquals(1, editor.firstSelectedLine());
+      assertEquals(2, editor.lastSelectedLine());
+      assertEquals(1, editor.getCursor().getLeftLine());
+      assertEquals(3, editor.getCursor().getRightLine());
+      assertEquals(0, editor.getCursor().getRightColumn());
+      assertNotNull(button(root, "Ask LLM"));
+      java.lang.reflect.Method range = MainActivity.class.getDeclaredMethod("selectedLines");
+      range.setAccessible(true);
+      assertArrayEquals(new int[] {2, 3}, (int[]) range.invoke(activity));
+      button(root, "Ask LLM").performClick();
+      assertTrue(org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog().isShowing());
     }
   }
 }

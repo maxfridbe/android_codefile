@@ -1,0 +1,61 @@
+{
+  "name": "High contrast",
+  "settings": [
+    {
+      "settings": {
+        "background": "#000000",
+        "foreground": "#FFFFFF",
+        "selection": "#171717",
+        "lineHighlight": "#171717"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#C4C4C4"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#FF8CFF"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#8CFF8C"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#FFFF00"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#70E5FF"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#FFFF00"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#FFFFFF"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "Carbon",
+  "settings": [
+    {
+      "settings": {
+        "background": "#10141C",
+        "foreground": "#E1E7EF",
+        "selection": "#1C2330",
+        "lineHighlight": "#1C2330"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#94A2B8"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#C5A3FF"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#B4F272"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#F2C879"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#82D5EF"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#B4F272"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#E1E7EF"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

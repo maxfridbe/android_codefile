@@ -1,0 +1,61 @@
+{
+  "name": "Ros\u00e9 Pine Dawn",
+  "settings": [
+    {
+      "settings": {
+        "background": "#FAF4ED",
+        "foreground": "#575279",
+        "selection": "#F2E9E1",
+        "lineHighlight": "#F2E9E1"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#797593"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#805CA0"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#966523"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#A34E69"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#397B87"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#A34E69"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#575279"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

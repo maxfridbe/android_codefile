@@ -1,0 +1,61 @@
+{
+  "name": "Ros\u00e9 Pine",
+  "settings": [
+    {
+      "settings": {
+        "background": "#191724",
+        "foreground": "#E0DEF4",
+        "selection": "#26233A",
+        "lineHighlight": "#26233A"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#A19DB6"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#C4A7E7"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#F6C177"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#EBBCBA"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#9CCFD8"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#EBBCBA"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#E0DEF4"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

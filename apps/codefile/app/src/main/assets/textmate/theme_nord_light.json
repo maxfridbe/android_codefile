@@ -1,0 +1,61 @@
+{
+  "name": "Nord light",
+  "settings": [
+    {
+      "settings": {
+        "background": "#ECEFF4",
+        "foreground": "#2E3440",
+        "selection": "#E5E9F0",
+        "lineHighlight": "#E5E9F0"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#59677E"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#865B80"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#486936"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#8B601E"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#365C8A"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#356D84"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#2E3440"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

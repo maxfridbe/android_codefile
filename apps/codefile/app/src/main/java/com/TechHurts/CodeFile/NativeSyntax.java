@@ -25,6 +25,14 @@ final class NativeSyntax {
               new ThemeModel(
                   IThemeSource.fromInputStream(context.getAssets().open(path), path, null), theme));
     }
+    for (AppTheme theme : AppTheme.ALL) {
+      String path = "textmate/" + theme.syntax + ".json";
+      ThemeRegistry.getInstance()
+          .loadTheme(
+              new ThemeModel(
+                  IThemeSource.fromInputStream(context.getAssets().open(path), path, null),
+                  theme.syntax));
+    }
     ThemeRegistry.getInstance().setTheme("darcula");
     GrammarRegistry.getInstance().loadGrammars("textmate/languages.json");
     try (InputStream in = context.getAssets().open("languages.json");

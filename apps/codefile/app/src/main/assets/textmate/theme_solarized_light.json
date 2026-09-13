@@ -1,0 +1,61 @@
+{
+  "name": "Solarized light",
+  "settings": [
+    {
+      "settings": {
+        "background": "#FDF6E3",
+        "foreground": "#586E75",
+        "selection": "#EEE8D5",
+        "lineHighlight": "#EEE8D5"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#657B83"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#826900"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#087E78"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#B04B16"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#246FA2"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#087E78"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#586E75"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

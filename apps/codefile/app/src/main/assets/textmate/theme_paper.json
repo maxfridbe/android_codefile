@@ -1,0 +1,61 @@
+{
+  "name": "Paper",
+  "settings": [
+    {
+      "settings": {
+        "background": "#FAFAF7",
+        "foreground": "#26322A",
+        "selection": "#E5E9DF",
+        "lineHighlight": "#E5E9DF"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#637163"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#7B399A"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#3C6C25"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#956315"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#006B83"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#3C6C25"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#26322A"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

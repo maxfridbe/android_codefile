@@ -1,0 +1,61 @@
+{
+  "name": "Dracula",
+  "settings": [
+    {
+      "settings": {
+        "background": "#282A36",
+        "foreground": "#F8F8F2",
+        "selection": "#343746",
+        "lineHighlight": "#343746"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#A2A7C2"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#FF79C6"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#F1FA8C"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#BD93F9"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#8BE9FD"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#BD93F9"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#F8F8F2"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

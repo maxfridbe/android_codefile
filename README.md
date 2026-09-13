@@ -1,29 +1,29 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0912.005`
+`com.TechHurts.CodeFile` · `v26.0912.006`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
 ## Features
 
 - Responsive phone, tablet, split-screen and foldable layouts. The ribbon spans the top of normal phone/tablet windows; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
-- Office-style File / View / Code ribbon with flat, underlined tabs, 120dp command groups, 96dp primary tiles, two stacked 48dp secondary actions, separators and aligned group captions. Narrow hinge panes use group menus rather than clipping commands. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. The viewer header has no logo.
+- Office-style File / View / Code ribbon with flat, underlined tabs, 112dp command groups, outlined primary tiles, two stacked secondary actions, separators and aligned group captions. Narrow hinge panes use group menus rather than clipping commands. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. CodeFile sits left of File; Settings sits right of Code. The filename row stays visible. Tapping the selected tab collapses the expanded ribbon; scroll displacement controls its animation.
 - Read-only, selectable code with native scrolling, line numbers, wrapping, bracket matching, block guides, current-line highlighting, adjustable font/spacing, and whitespace display.
 - 68 bundled language definitions / 78 TextMate grammars, including Java, Kotlin, JS/TS/JSX/TSX, Python, C/C++, C#, Rust, Go, Swift, PHP, HTML/XML, CSS, SQL, shell, Markdown, JSON/YAML/TOML and more. Manual language selection; unknown formats use plain text.
 - System document picker, multiple open files, paste, VIEW/EDIT, SEND/SEND_MULTIPLE, and PROCESS_TEXT intents. Original documents are never overwritten. Export creates a UTF-8 copy.
-- Native source-reference gutter for formatted previews. `~` labels are approximate. Built-in Java routines reindent brace-based languages while preserving existing lines, strings and comments; JSON formatting changes only whitespace. A connected language server can supply full language-specific formatting. This is not Prettier and does not rewrite quotes or semicolons. Python and other unsupported local formats require a server formatter.
-- Native YAML node formatting retains comments, scalar styles, aliases, custom tags and multiple documents. Inline-commented flow collections retain flow style. CSV/TSV formatting preserves field values; the Code → Table action supports comma, tab, semicolon and pipe delimiters with quoted/multiline fields. Table parsing is off the UI thread. XML pretty printing preserves mixed content and rejects DTDs/external entities. JSON Lines compaction preserves numeric tokens. TXT/log/INI/properties/TOML/Markdown keep meaningful whitespace and normalize line endings only.
+- Native source-reference gutter for formatted previews. `~` labels are approximate. Built-in Java routines reindent brace-based languages while preserving existing lines, strings and comments; JSON formatting changes only whitespace.  This is not Prettier and does not rewrite quotes or semicolons. Python and other unsupported local formats retain their meaningful whitespace.
+- Native YAML node formatting retains comments, scalar styles, aliases, custom tags and multiple documents. Inline-commented flow collections retain flow style. CSV/TSV formatting preserves field values; the Code → Navigation → Table action supports comma, tab, semicolon and pipe delimiters with quoted/multiline fields. Table parsing is off the UI thread. XML pretty printing preserves mixed content and rejects DTDs/external entities. JSON Lines compaction preserves numeric tokens. TXT/log/INI/properties/TOML/Markdown keep meaningful whitespace and normalize line endings only.
 - Native unified / side-by-side diff lists, line numbers, changed-text highlights, collapsed unchanged regions, previous/next change, patch export, sharing, and analysis. Both panes share row positions and vertical scrolling; long lines wrap.
 - Native settings, search, line navigation, selection-based snippet ranges, Markdown fencing, clipboard, share chooser, and AI responses. All app action buttons use embedded Nerd Font glyphs.
 - Always-accessible Search action with live native match highlighting, match counts, next/previous, case matching, regex validation, and persistent yellow/cyan/pink/green highlight colors.
-- Grouped, collapsible Settings sections with immediate theme application; changing a theme keeps the same editor and document. Six palettes plus system matching. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
+- Grouped, collapsible Settings sections with immediate theme application; changing a theme keeps the same editor and document. Fourteen light/dark palettes plus system matching: Carbon, Midnight, Dracula, Forest, Paper, High contrast, Nord dark/light, Catppuccin Mocha/Latte, Solarized dark/light, and Rosé Pine/Dawn. Theme accents color ribbon borders and code guides. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
 - Native gzip diagnostic-log sharing with `ACTION_SEND`, `application/gzip`, a read-only content provider, and temporary URI permission. Reports omit source, prompts, responses, endpoint URLs, and credentials.
 
 ## Navigation and LSP
 
-**Enable navigation** activates a native lexical symbol index immediately if no language server is configured. Symbols, declaration candidates and word occurrences work in the current document. This local index is not a semantic compiler or a language server; it does not resolve imports or infer types.
+Navigation starts automatically for each document; there is no language-server setup in Settings. Java uses an embedded JavaParser AST and symbol resolver for same-file declarations, references, symbols and hover. Other languages use a local lexical index. This does not provide project-wide semantic resolution or a full compiler for every language. Documents stay on the device during navigation.
 
-Set a `wss://` JSON-RPC language-server gateway once in Settings to use the same button for semantic navigation. Configure workspace root, optional actual document URI, and optional language ID. The server must already be running and exchange one JSON-RPC message per WebSocket message. Native OkHttp handles the connection, initialization, document open/close, symbols, definitions, references, hover, and formatting. UTF-16 positions are required. Enabling sends the original document to that server. Definitions outside the current document show a URI and line for manual opening through Android's document picker.
+Press a visible line number and slowly drag to select complete lines in either direction; dragging near the edge scrolls the document. Releasing opens a selection ribbon with Share, Copy, Export and Ask LLM. The analysis dialog previews the selected snippet before sending it. The native line-number gutter pans with unwrapped text and returns when panning back.
 
 ## OpenRouter and local APIs
 
@@ -35,7 +35,7 @@ Settings accepts any compatible full chat completions endpoint and model ID. Ope
 
 Localhost means this Android device. For a computer use its private LAN IP. Local HTTP is accepted for localhost and private/loopback/link-local IP addresses; public endpoints require HTTPS. Redirects are refused. API keys are optional for local servers, encrypted with Android Keystore, and stored separately for each exact endpoint URL. Existing endpoint keys from earlier builds remain usable. Viewer settings now use native SharedPreferences.
 
-Only the visible share preview is sent when **Send preview to API** is tapped. Responses are native selectable text. Select a model actually available on your endpoint; presets are examples.
+Only the previewed snippet is sent when **Send preview to API** or the selection dialog’s **Ask LLM** is tapped. Responses are native selectable text. Select a model actually available on your endpoint; presets are examples.
 
 ## Build
 
@@ -55,7 +55,7 @@ APKs: `output/codefile/`. Signing uses the existing private `keystore/`, exclude
 
 ## Verification and limits
 
-Native Robolectric tests cover the Android activity and read-only editor, absence of browser Views, incoming text intents, native settings, gzip reports, touch pinch zoom, visible word wrapping, and simulated tablet/hinge layouts. Release auditing rejects WebView DEX references and browser runtime assets. Pure Java tests exercise source references, formatting, snippet fences, symbol lookup, diff patches, and API endpoint rules. A physical device is needed to verify installed document/share providers and your live API/LSP servers.
+Native Robolectric tests cover the Android activity and read-only editor, absence of browser Views, incoming text intents, native settings, gzip reports, touch pinch zoom, visible word wrapping, and simulated tablet/hinge layouts. Release auditing rejects WebView DEX references and browser runtime assets. Pure Java tests exercise source references, formatting, snippet fences, symbol lookup, diff patches, and API endpoint rules. A physical device is needed to verify installed document/share providers and your live API servers.
 
 Limits: 8 MiB text per file; 20 tabs; 1 MiB for formatting/navigation; 1 MiB / 20,000 combined lines per diff; 180,000 characters per text snippet and 120,000 per analysis. UTF-8 and BOM-marked UTF-16 are accepted. Documents remain in memory and are not restored after process death. Long-running requests have timeouts.
 

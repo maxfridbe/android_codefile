@@ -1,0 +1,61 @@
+{
+  "name": "Catppuccin Latte",
+  "settings": [
+    {
+      "settings": {
+        "background": "#EFF1F5",
+        "foreground": "#4C4F69",
+        "selection": "#E6E9EF",
+        "lineHighlight": "#E6E9EF"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#6C6F85"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#8839EF"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#287A13"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#B45405"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#087C91"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#8839EF"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#4C4F69"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

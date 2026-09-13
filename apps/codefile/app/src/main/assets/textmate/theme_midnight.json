@@ -1,0 +1,61 @@
+{
+  "name": "Midnight",
+  "settings": [
+    {
+      "settings": {
+        "background": "#0D1628",
+        "foreground": "#DFE9FA",
+        "selection": "#18243B",
+        "lineHighlight": "#18243B"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#91A6CA"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#C8A0FF"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#8DDBC1"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#FFCC80"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#7AB8FF"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#7AB8FF"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#DFE9FA"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

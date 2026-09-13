@@ -1,0 +1,61 @@
+{
+  "name": "Nord dark",
+  "settings": [
+    {
+      "settings": {
+        "background": "#2E3440",
+        "foreground": "#ECEFF4",
+        "selection": "#3B4252",
+        "lineHighlight": "#3B4252"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#A7B4C8"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#B48EAD"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#A3BE8C"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#EBCB8B"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#81A1C1"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#88C0D0"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#ECEFF4"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

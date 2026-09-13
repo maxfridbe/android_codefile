@@ -25,3 +25,10 @@ SnakeYAML Engine 2.9 — Apache License 2.0
 https://bitbucket.org/snakeyaml/snakeyaml-engine
 Native YAML node parsing/emission (no Java object construction).
 See textmate/LICENSE-snakeyaml.txt.
+
+JavaParser and JavaSymbolSolver 3.26.3 — Apache License 2.0 (dual license choice).
+https://github.com/javaparser/javaparser/tree/javaparser-parent-3.26.3
+See textmate/LICENSE-javaparser.txt.
+Guava — Apache License 2.0. https://github.com/google/guava
+Javassist — Apache License 2.0 (tri-license choice). https://github.com/jboss-javassist/javassist
+CodeFile theme palettes and native controls are part of this application's source.

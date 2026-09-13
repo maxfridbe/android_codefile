@@ -17,8 +17,8 @@ android {
         targetSdk = 34
         // Injected by build.sh from git (commit count / git describe);
         // the defaults only apply to builds outside the build system.
-        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9751005
-        versionName = findProperty("appVersionName") as String? ?: "v26.0912.005"
+        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9751006
+        versionName = findProperty("appVersionName") as String? ?: "v26.0912.006"
     }
 
     if (sharedKeystore != null) {
@@ -60,6 +60,7 @@ dependencies {
     implementation("io.github.Rosemoe.sora-editor:language-textmate:0.23.4")
     implementation("androidx.core:core:1.12.0")
     implementation("androidx.window:window-java:1.2.0")
+    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.26.3")
     implementation("org.snakeyaml:snakeyaml-engine:2.9")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.github.java-diff-utils:java-diff-utils:4.15")

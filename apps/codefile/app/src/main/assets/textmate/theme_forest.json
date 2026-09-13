@@ -1,0 +1,61 @@
+{
+  "name": "Forest",
+  "settings": [
+    {
+      "settings": {
+        "background": "#111D19",
+        "foreground": "#E0EEE4",
+        "selection": "#1C3027",
+        "lineHighlight": "#1C3027"
+      }
+    },
+    {
+      "scope": "comment",
+      "settings": {
+        "foreground": "#91B19C"
+      }
+    },
+    {
+      "scope": "keyword, storage",
+      "settings": {
+        "foreground": "#CEB5E8"
+      }
+    },
+    {
+      "scope": "string",
+      "settings": {
+        "foreground": "#A6D98B"
+      }
+    },
+    {
+      "scope": "constant.numeric, constant.language",
+      "settings": {
+        "foreground": "#E5C17E"
+      }
+    },
+    {
+      "scope": "entity.name.type, support.type, support.class",
+      "settings": {
+        "foreground": "#79C9BB"
+      }
+    },
+    {
+      "scope": "entity.name.function, support.function",
+      "settings": {
+        "foreground": "#A6D98B"
+      }
+    },
+    {
+      "scope": "variable, entity.name.tag",
+      "settings": {
+        "foreground": "#E0EEE4"
+      }
+    },
+    {
+      "scope": "invalid",
+      "settings": {
+        "foreground": "#E05060"
+      }
+    }
+  ]
+}

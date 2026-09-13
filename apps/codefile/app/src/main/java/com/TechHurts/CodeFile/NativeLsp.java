@@ -18,6 +18,7 @@ final class NativeLsp implements AutoCloseable {
       new ConcurrentHashMap<>();
   private final AtomicInteger sequence = new AtomicInteger();
   private WebSocket socket;
+  private LocalLanguageService local;
   private String uri;
   private volatile boolean closed;
   JSONObject capabilities = new JSONObject();
@@ -115,11 +116,40 @@ final class NativeLsp implements AutoCloseable {
             object("uri", uri, "languageId", language, "version", 1, "text", text)));
   }
 
+  void startLocal(String name, String language, String text) {
+    uri = "file:///codefile/" + android.net.Uri.encode(name);
+    local = new LocalLanguageService(name, language, text, uri);
+    capabilities =
+        object(
+            "documentSymbolProvider",
+            true,
+            "definitionProvider",
+            true,
+            "referencesProvider",
+            true,
+            "hoverProvider",
+            true);
+  }
+
+  String description() {
+    return local == null ? "Language service" : local.description();
+  }
+
   String uri() {
     return uri;
   }
 
   JSONObject request(String method, JSONObject params) throws Exception {
+    if (local != null) {
+      if (closed) throw new IOException("Language service closed");
+      return object(
+          "jsonrpc",
+          "2.0",
+          "id",
+          sequence.incrementAndGet(),
+          "result",
+          local.handle(method, params));
+    }
     int id = sequence.incrementAndGet();
     CompletableFuture<JSONObject> f = new CompletableFuture<>();
     pending.put(id, f);
