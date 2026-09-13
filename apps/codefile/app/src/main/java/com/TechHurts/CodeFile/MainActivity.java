@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
   private FoldWorkspace workspace;
   private CollapsingRibbon ribbonBody;
   private final List<RibbonTab> ribbonTabButtons = new ArrayList<>();
-  private boolean ribbonCollapsed;
+  private boolean ribbonCollapsed, ribbonManuallyCollapsed;
   private int ribbonTab;
   private Button ribbonToggle, wrapButton;
   private AlertDialog settingsDialog;
@@ -325,9 +325,11 @@ public class MainActivity extends Activity {
 
   private void tapRibbon(int index) {
     if (ribbonTab == index && !ribbonCollapsed && ribbonBody.fraction() > 0) {
+      ribbonManuallyCollapsed = true;
       setRibbonCollapsed(true);
       return;
     }
+    ribbonManuallyCollapsed = false;
     selectRibbon(index);
   }
 
@@ -336,7 +338,7 @@ public class MainActivity extends Activity {
     if (ribbonBody != null) ribbonBody.invalidate();
     for (RibbonTab tab : ribbonTabButtons)
       tab.setSelected(Integer.valueOf(index).equals(tab.getTag()));
-    setRibbonCollapsed(false);
+    setRibbonCollapsed(ribbonManuallyCollapsed);
     for (int i = 0; i < ribbonPages.size(); i++)
       ribbonPages.get(i).setVisibility(i == index ? View.VISIBLE : View.GONE);
   }
@@ -352,7 +354,8 @@ public class MainActivity extends Activity {
   }
 
   private void ribbonScroll(int delta, int cause) {
-    if (delta == 0
+    if (ribbonManuallyCollapsed
+        || delta == 0
         || (cause != ScrollEvent.CAUSE_USER_DRAG && cause != ScrollEvent.CAUSE_USER_FLING)) return;
     ribbonBody.consumeScroll(delta);
     ribbonCollapsed = ribbonBody.fraction() < 0.01f;
@@ -429,7 +432,13 @@ public class MainActivity extends Activity {
       ribbonTabs.addView(tabButton, tabLayout);
     }
     ribbonToggle =
-        quickAction("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
+        quickAction(
+            "Collapse ribbon",
+            0xf0143,
+            () -> {
+              ribbonManuallyCollapsed = !ribbonCollapsed;
+              setRibbonCollapsed(ribbonManuallyCollapsed);
+            });
     ribbonTabs.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
     ribbonToggle.setTag("ribbonToggle");
     ribbonTabs.addView(ribbonToggle);
@@ -539,7 +548,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.010")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.011")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -1811,7 +1820,7 @@ public class MainActivity extends Activity {
     for (int i = 0; i < ribbonPages.size(); i++)
       ribbonPages.get(i).setVisibility(i == 6 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
-    setRibbonCollapsed(false);
+    setRibbonCollapsed(ribbonManuallyCollapsed);
     updateColorActions();
     updateStatus();
   }

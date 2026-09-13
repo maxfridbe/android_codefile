@@ -907,6 +907,35 @@ public class NativeActivityTest {
     }
   }
 
+  @Test
+  public void manualCollapseIgnoresScrollUntilExplicitlyExpanded() throws Exception {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      expandTab(root, "File");
+      java.lang.reflect.Method scroll =
+          MainActivity.class.getDeclaredMethod("ribbonScroll", int.class, int.class);
+      scroll.setAccessible(true);
+      for (String control : new String[] {"Collapse ribbon", "File"}) {
+        button(root, control).performClick();
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(250));
+        CollapsingRibbon ribbon = find(root, CollapsingRibbon.class);
+        assertEquals(0f, ribbon.fraction(), .001f);
+        scroll.invoke(activity, -120, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG);
+        scroll.invoke(activity, -120, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_FLING);
+        assertEquals(0f, ribbon.fraction(), .001f);
+        button(root, "Expand ribbon").performClick();
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(250));
+        assertEquals(1f, ribbon.fraction(), .001f);
+        scroll.invoke(activity, 30, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG);
+        float partial = ribbon.fraction();
+        scroll.invoke(activity, -10, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG);
+        assertTrue(ribbon.fraction() > partial);
+      }
+    }
+  }
+
   private void finger(
       LineSelectionEditor editor, long start, long time, int action, float x, float y) {
     MotionEvent event = MotionEvent.obtain(start, time, action, x, y, 0);
@@ -925,6 +954,13 @@ public class NativeActivityTest {
       MainActivity activity = controller.get();
       View root = activity.getWindow().getDecorView();
       LineSelectionEditor editor = find(root, LineSelectionEditor.class);
+      java.lang.reflect.Field ready = MainActivity.class.getDeclaredField("syntaxReady");
+      ready.setAccessible(true);
+      for (int i = 0; i < 100 && !ready.getBoolean(activity); i++) {
+        shadowOf(Looper.getMainLooper()).idle();
+        Thread.sleep(20);
+      }
+      assertTrue("Syntax startup completed before the gesture", ready.getBoolean(activity));
       shadowOf(Looper.getMainLooper()).idle();
       editor.measure(
           View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),

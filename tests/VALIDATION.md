@@ -1,15 +1,16 @@
-# Native release validation — v26.0913.010
+# Native release validation — v26.0913.011
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752010`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752011`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 47 JUnit/Robolectric tests: passed, no failures or skips.
+- 48 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
 - Whitespace markers explicitly use the editor NON_PRINTABLE_CHAR color: neutral #777777 on light themes and #858585 on dark themes, reapplied with appearance changes.
 - Theme selection immediately repaints the existing editor without replacing its document. All 14 palettes load native syntax themes; foreground contrast is at least 4.5:1 and accent contrast at least 3:1 against the editor background.
 - Slow upward gutter dragging selects complete lines, excluding the following line; selection actions include Share and Ask LLM.
+- Manual collapse by the toggle or selected tab blocks drag/fling expansion; explicit expansion releases the lock and restores scroll tracking.
 - Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
 - Embedded Java service resolves a shadowed local variable to its same-file declaration, initializes without a network endpoint, and provides a labelled lexical fallback for other languages.
 - Office-style ribbon groups use a stable 112dp height, shared caption baselines, outlined primary tiles and two stacked secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
@@ -37,7 +38,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752010`; minimum Android API 2
 Release SHA-256:
 
 ```
-977bd684cce0dea042a16771a04cc60f4c8059213728a663b681f17ac794c096
+70adc71dd0e46c7ad4721374e8f12526501dfa7d2dca0578221f344c9dc355e7
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

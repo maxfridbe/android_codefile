@@ -17,8 +17,8 @@ android {
         targetSdk = 34
         // Injected by build.sh from git (commit count / git describe);
         // the defaults only apply to builds outside the build system.
-        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752010
-        versionName = findProperty("appVersionName") as String? ?: "v26.0913.010"
+        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752011
+        versionName = findProperty("appVersionName") as String? ?: "v26.0913.011"
     }
 
     if (sharedKeystore != null) {
