@@ -507,10 +507,55 @@ public class NativeActivityTest {
       AlertDialog before = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
       expandTab(root, "Navigation");
       assertSame(before, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
-      for (String name :
-          new String[] {"Symbols", "Definition", "References", "Info", "Table", "Line"})
+      for (String name : new String[] {"Symbols", "Definition", "References", "Info", "Table"})
         assertTrue(button(pages.get(5), name).isShown());
       assertNotNull(button(root, "Close file"));
+      assertNull(button(pages.get(1), "Line"));
+      assertNull(button(pages.get(5), "Line"));
+      assertNotNull(button(pages.get(4), "Go to line"));
+      assertNotNull(button(pages.get(3), "Settings"));
+    }
+  }
+
+  @Test
+  public void appIconOpensSettingsAndSymbolSearchJumpsToHighlightedLine() throws Exception {
+    String source = "class Demo {\n  void alpha() {}\n  void beta() {}\n}\n";
+    Intent intent =
+        new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, source);
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, intent).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      ViewGroup identity = root.findViewWithTag("identity");
+      identity.getChildAt(0).performClick();
+      AlertDialog settings = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      assertTrue(settings.isShowing());
+      settings.dismiss();
+      java.lang.reflect.Method show =
+          MainActivity.class.getDeclaredMethod("showSymbols", java.util.List.class);
+      show.setAccessible(true);
+      show.invoke(
+          activity,
+          java.util.Arrays.asList(
+              new SourceTools.Symbol("alpha", 1, 7), new SourceTools.Symbol("beta", 2, 7)));
+      AlertDialog symbols = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      View dialogRoot = symbols.getWindow().getDecorView();
+      EditText search = find(dialogRoot, EditText.class);
+      search.setText("BETA");
+      ListView results = find(dialogRoot, ListView.class);
+      assertEquals(1, results.getAdapter().getCount());
+      View result = results.getAdapter().getView(0, null, results);
+      assertTrue(
+          ((TextView) ((ViewGroup) result).getChildAt(2))
+              .getText()
+              .toString()
+              .contains("void beta()"));
+      results.performItemClick(result, 0, 0);
+      LineSelectionEditor editor = find(root, LineSelectionEditor.class);
+      assertEquals(2, editor.getCursor().getLeftLine());
+      assertEquals(2, editor.navigationLine);
+      assertEquals(source, editor.getText().toString());
+      assertFalse(symbols.isShowing());
     }
   }
 

@@ -10,6 +10,13 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 final class LineSelectionEditor extends CodeEditor {
   TextHighlights highlights;
   String[] sourceLabels;
+  int navigationLine = -1;
+
+  void setNavigationLine(int line) {
+    navigationLine = line;
+    invalidate();
+  }
+
   private MotionEvent gutterDown;
   private int gestureAxis;
 

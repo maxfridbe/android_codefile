@@ -308,11 +308,11 @@ public class MainActivity extends Activity {
     };
     int[][][] order = {
       {{0, 1, 5}, {4, 2, 3}},
-      {{0, 1, 2}, {5, 4, 3}},
+      {{0, 1}, {4, 3, 2}},
       {{1, 0, 2}, {3}},
       {{0, 1, 2}, {3, 4, 5}},
       {},
-      {{0, 1, 2}, {4, 3, 5}},
+      {{0, 1, 2}, {4, 3}},
       {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
@@ -333,6 +333,7 @@ public class MainActivity extends Activity {
 
   private void selectRibbon(int index) {
     ribbonTab = index;
+    if (ribbonBody != null) ribbonBody.invalidate();
     for (RibbonTab tab : ribbonTabButtons)
       tab.setSelected(Integer.valueOf(index).equals(tab.getTag()));
     setRibbonCollapsed(false);
@@ -401,7 +402,9 @@ public class MainActivity extends Activity {
     identity.setTag("identity");
     ImageView logo = new ImageView(this);
     logo.setImageResource(R.drawable.ic_launcher);
-    logo.setContentDescription("CodeFile logo");
+    logo.setContentDescription("Open settings");
+    logo.setFocusable(true);
+    logo.setOnClickListener(v -> settings());
     identity.addView(logo, new LinearLayout.LayoutParams(dp(40), dp(40)));
     ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(44), dp(40)));
     String[] groups = {"File", "Search", "View", "Code", "Navigation", "Support"};
@@ -424,7 +427,6 @@ public class MainActivity extends Activity {
               dp(index == 5 ? 112 : index == 3 ? 84 : index == 4 ? 78 : 66), dp(40));
       tabLayout.setMargins(dp(1), dp(2), dp(1), 0);
       ribbonTabs.addView(tabButton, tabLayout);
-      if (i == 3) ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
     }
     ribbonToggle =
         quickAction("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
@@ -437,6 +439,8 @@ public class MainActivity extends Activity {
     tabScroll.addView(ribbonTabs);
     controls.addView(tabScroll);
     ribbonBody = new CollapsingRibbon(this);
+    ribbonBody.setOutline(ribbonTabButtons, accent);
+    tabScroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> ribbonBody.invalidate());
     ribbonPages.clear();
     controls.addView(ribbonBody);
     LinearLayout fileActions = row();
@@ -474,7 +478,6 @@ public class MainActivity extends Activity {
               prefs.edit().putBoolean("numbers", !prefs.getBoolean("numbers", true)).apply();
               configureEditor(editor);
             }));
-    tools.addView(button("Line", 0xf027b, this::goTo));
     wrapButton =
         button(
             "Wrap",
@@ -536,12 +539,16 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.008")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.009")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
     RibbonPage searchPage =
-        new RibbonPage(this, new String[0], Collections.emptyList(), new int[0][]);
+        new RibbonPage(
+            this,
+            new String[] {"Navigate"},
+            Collections.singletonList(button("Go to line", 0xf027b, this::goTo)),
+            new int[][] {{0}});
     searchPage.prependPanel(buildInlineSearch(), 316);
     searchPage.setColors(panel, fg, muted, accent);
     ribbonPages.add(searchPage);
@@ -561,6 +568,9 @@ public class MainActivity extends Activity {
     editor.subscribeEvent(
         SelectionChangeEvent.class,
         (event, unsubscribe) -> {
+          LineSelectionEditor nativeEditor = (LineSelectionEditor) editor;
+          if (nativeEditor.navigationLine != editor.getCursor().getLeftLine())
+            nativeEditor.setNavigationLine(-1);
           updateStatus();
           updateColorActions();
         });
@@ -717,6 +727,7 @@ public class MainActivity extends Activity {
   private void render() {
     if (editor == null || current == null) return;
     ((LineSelectionEditor) editor).clearLineSelection();
+    ((LineSelectionEditor) editor).setNavigationLine(-1);
     ((LineSelectionEditor) editor)
         .setHighlights(current.formatted ? current.previewHighlights : current.originalHighlights);
     editor.setText(current.text());
@@ -1304,6 +1315,7 @@ public class MainActivity extends Activity {
       surface.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
       v.setBackground(surface);
     }
+    if (v instanceof CollapsingRibbon) ((CollapsingRibbon) v).setOutline(ribbonTabButtons, accent);
     if (v instanceof RibbonPage) {
       ((RibbonPage) v).setColors(panel, fg, muted, accent);
       View search = v.findViewWithTag("searchPanel");
@@ -2008,7 +2020,6 @@ public class MainActivity extends Activity {
     actions.addView(button("References", 0xf0339, () -> navigate("references")));
     actions.addView(button("Info", 0xf02fd, () -> navigate("hover")));
     actions.addView(button("Table", 0xf04eb, this::tableView));
-    actions.addView(button("Line", 0xf027b, this::goTo));
     ribbonPage(actions);
   }
 
@@ -2134,19 +2145,52 @@ public class MainActivity extends Activity {
   }
 
   private void showSymbols(List<SourceTools.Symbol> symbols) {
-    LinearLayout content = column();
-    if (symbols.isEmpty()) content.addView(label("No symbols at this position", 13, muted));
-    final AlertDialog[] d = {null};
+    List<SymbolBrowser.Entry> entries = new ArrayList<>();
     for (SourceTools.Symbol symbol : symbols)
-      content.addView(
-          button(
-              symbol.toString(),
-              0xf01a4,
-              () -> {
-                jump(symbol.line, symbol.column);
-                d[0].dismiss();
-              }));
-    d[0] = dialog("Document navigation", scrolling(content));
+      entries.add(
+          new SymbolBrowser.Entry(symbol.name, "Local symbol", "", symbol.line, symbol.column));
+    showSymbolBrowser(entries);
+  }
+
+  private void showSymbolBrowser(List<SymbolBrowser.Entry> entries) {
+    Document doc = current;
+    final AlertDialog[] popup = {null};
+    SymbolBrowser browser =
+        new SymbolBrowser(
+            this,
+            doc.text(),
+            entries,
+            fg,
+            muted,
+            panel,
+            accent,
+            codeFont,
+            name -> iconText(0xf0645, name),
+            entry -> {
+              if (current != doc) {
+                popup[0].dismiss();
+                return;
+              }
+              if (!entry.uri.isEmpty()) {
+                showText(
+                    "Other source file",
+                    entry.uri
+                        + "\nLine "
+                        + (entry.line + 1)
+                        + "\nOpen the matching file with Open.");
+                return;
+              }
+              jump(entry.line, entry.column);
+              ((LineSelectionEditor) editor).setNavigationLine(entry.line);
+              popup[0].dismiss();
+              editor.requestFocus();
+            });
+    LinearLayout content = column();
+    content.addView(
+        browser,
+        new LinearLayout.LayoutParams(
+            -1, Math.min(dp(520), Math.max(dp(240), root.getHeight() * 2 / 3))));
+    popup[0] = dialog("Symbols · " + doc.name, content);
   }
 
   private void collectRemote(Object value, List<JSONObject> results) {
@@ -2163,9 +2207,7 @@ public class MainActivity extends Activity {
   private void showRemoteResults(Object value, NativeLsp server) {
     List<JSONObject> results = new ArrayList<>();
     collectRemote(value, results);
-    LinearLayout content = column();
-    final AlertDialog[] dialog = {null};
-    if (results.isEmpty()) content.addView(label("No results", 13, muted));
+    List<SymbolBrowser.Entry> entries = new ArrayList<>();
     for (JSONObject item : results) {
       JSONObject location = item.optJSONObject("location");
       JSONObject range = item.optJSONObject("selectionRange");
@@ -2180,23 +2222,48 @@ public class MainActivity extends Activity {
           location == null
               ? item.optString("uri", item.optString("targetUri", server.uri()))
               : location.optString("uri", server.uri());
-      String name = item.optString("name", "Result") + " · line " + (line + 1);
-      content.addView(
-          button(
-              name,
-              0xf01a4,
-              () -> {
-                if (!uri.equals(server.uri())) {
-                  showText(
-                      "Other source file",
-                      uri + "\nLine " + (line + 1) + "\nOpen the matching file with Open.");
-                } else {
-                  jump(line, column);
-                  dialog[0].dismiss();
-                }
-              }));
+      String[] kinds = {
+        "Symbol",
+        "File",
+        "Module",
+        "Namespace",
+        "Package",
+        "Class",
+        "Method",
+        "Property",
+        "Field",
+        "Constructor",
+        "Enum",
+        "Interface",
+        "Function",
+        "Variable",
+        "Constant",
+        "String",
+        "Number",
+        "Boolean",
+        "Array",
+        "Object",
+        "Key",
+        "Null",
+        "Enum member",
+        "Struct",
+        "Event",
+        "Operator",
+        "Type parameter"
+      };
+      int kind = item.optInt("kind");
+      String info = kind > 0 && kind < kinds.length ? kinds[kind] : "Location";
+      String detail = item.optString("detail");
+      if (!detail.isEmpty()) info += " · " + detail;
+      entries.add(
+          new SymbolBrowser.Entry(
+              item.optString("name", "Result"),
+              info,
+              uri.equals(server.uri()) ? "" : uri,
+              line,
+              column));
     }
-    dialog[0] = dialog("Language-server results", scrolling(content));
+    showSymbolBrowser(entries);
   }
 
   private void diff() {

@@ -1,9 +1,9 @@
-# Native release validation — v26.0913.008
+# Native release validation — v26.0913.009
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752008`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752009`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 46 JUnit/Robolectric tests: passed, no failures or skips.
+- 47 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
@@ -12,12 +12,13 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752008`; minimum Android API 2
 - Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
 - Embedded Java service resolves a shadowed local variable to its same-file declaration, initializes without a network endpoint, and provides a labelled lexical fallback for other languages.
 - Office-style ribbon groups use a stable 112dp height, shared caption baselines, outlined primary tiles and two stacked secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
-- Navigation opens inline with directly visible Symbols, Definition, References, Info, Table and Line actions; opening the tab creates no dialog. Service info is absent from Code and remains in Support.
+- App icon opens Settings; Settings is in Support, and Go to line is in Search rather than View/Navigation. Symbol regression filters names case-insensitively, inspects code preview and jumps to the highlighted destination without changing source text.
+- Navigation opens inline with directly visible Symbols, Definition, References, Info and Table actions; opening the tab creates no dialog. Service info is absent from Code and remains in Support.
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Wrap uses an accent-filled selected state while enabled and exposes On/Off to accessibility. Fit width adjusts text size within 8–40sp and preserves wrapping; regression checks cover both states and configuration refresh.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
-- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile’s icon is 40dp (twice its previous size), and the top bar has no surrounding outline. Individual tabs keep accent top and side outlines, with no bottom border or underline. The icon sits left of File without the CodeFile text label; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
+- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile’s icon is 40dp (twice its previous size), and the top bar has no surrounding outline. Individual tabs keep accent top and side outlines, with no bottom border or underline. The ribbon upper border joins the active tab sides, leaving a gap underneath that tab; the gap follows horizontal tab scrolling. The icon sits left of File without the CodeFile text label; the Settings gear is in Support and the app icon opens Settings. Settings Save remains outside its scrolling content.
 - Selection swatch opens a PopupWindow containing native SeekBars and a hex EditText with no preset colors; it no longer creates a dialog. Clear colors is directly enabled for intersecting colored selections. Tests apply and remove a multi-line highlight, preserve source text and retain annotations through configuration refresh. Range tests cover overlapping colors and partial removal; native highlight bitmap inspected.
 - Incoming ClipData text is accepted with its suggested filename. File → Save launches ACTION_CREATE_DOCUMENT and writes exact UTF-8 text through the content resolver.
 - Pan regression covers horizontal gestures starting in the source/number gutter at 8, 14, 26 and 40sp, fixed editor width, no accidental selection and no ribbon drag. Source references share the native renderer rather than resizing a sibling view.
@@ -35,7 +36,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752008`; minimum Android API 2
 Release SHA-256:
 
 ```
-f156a4a2a759e3bb5aa3fb4ba3c055bb2e0291cd58cd2824aa6d395e57a23f0a
+5605e06455f979987b82f081384c20cd9ec0c2858bff8d0493ebf86191ca16c0
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

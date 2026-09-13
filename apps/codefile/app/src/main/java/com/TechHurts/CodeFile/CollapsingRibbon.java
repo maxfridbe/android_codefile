@@ -10,6 +10,34 @@ final class CollapsingRibbon extends FrameLayout {
   private float fraction = 1f;
   private int expandedHeight;
   private ValueAnimator animator;
+  private final android.graphics.Paint outline =
+      new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+  private java.util.List<? extends View> tabs = java.util.Collections.emptyList();
+  private final int[] origin = new int[2], tabOrigin = new int[2];
+
+  void setOutline(java.util.List<? extends View> tabs, int accent) {
+    this.tabs = tabs;
+    outline.setColor((accent & 0xffffff) | 0xb0000000);
+    outline.setStrokeWidth(Math.max(1, getResources().getDisplayMetrics().density));
+    invalidate();
+  }
+
+  protected void dispatchDraw(android.graphics.Canvas canvas) {
+    super.dispatchDraw(canvas);
+    if (getHeight() == 0) return;
+    float left = getWidth(), right = getWidth();
+    getLocationInWindow(origin);
+    for (View tab : tabs) {
+      if (!tab.isSelected()) continue;
+      tab.getLocationInWindow(tabOrigin);
+      left = Math.max(0, Math.min(getWidth(), tabOrigin[0] - origin[0]));
+      right = Math.max(0, Math.min(getWidth(), tabOrigin[0] - origin[0] + tab.getWidth()));
+      break;
+    }
+    float y = outline.getStrokeWidth() / 2;
+    canvas.drawLine(0, y, left, y, outline);
+    canvas.drawLine(right, y, getWidth(), y, outline);
+  }
 
   CollapsingRibbon(Context context) {
     super(context);

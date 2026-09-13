@@ -27,6 +27,7 @@ final class HighlightRenderer extends EditorRenderer {
       List<DrawCursorTask> cursors,
       MutableIntList current,
       MutableInt first) {
+    drawNavigation(canvas);
     if (owner.highlights != null) drawHighlights(canvas);
     super.drawRows(canvas, offset, numbers, cursors, current, first);
   }
@@ -46,6 +47,26 @@ final class HighlightRenderer extends EditorRenderer {
           sourcePaint);
     }
     super.drawLineNumber(canvas, line, row, offset + source, width - source, color);
+  }
+
+  private void drawNavigation(Canvas canvas) {
+    if (owner.navigationLine < 0) return;
+    int end = Math.min(owner.getLastVisibleRow(), owner.getLayout().getRowCount() - 1);
+    sourcePaint.setColor(
+        (owner
+                    .getColorScheme()
+                    .getColor(
+                        io.github.rosemoe.sora.widget.schemes.EditorColorScheme.LINE_NUMBER_CURRENT)
+                & 0xffffff)
+            | 0x45000000);
+    for (int row = owner.getFirstVisibleRow(); row <= end; row++)
+      if (owner.getLayout().getLineNumberForRow(row) == owner.navigationLine)
+        canvas.drawRect(
+            0,
+            owner.getRowTop(row) - owner.getOffsetY(),
+            owner.getWidth(),
+            owner.getRowBottom(row) - owner.getOffsetY(),
+            sourcePaint);
   }
 
   private void drawHighlights(Canvas canvas) {
