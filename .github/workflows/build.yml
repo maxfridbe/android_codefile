@@ -26,6 +26,8 @@ jobs:
             printf '%s\n' "$KEYSTORE_PROPERTIES" > keystore/keystore.properties
           fi
       - run: CONTAINER_ENGINE=docker SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitTest' ./build.sh codefile
+      - run: python3 scripts/audit-native-apk.py output/codefile/codefile-$(cat VERSION)-release.apk
+      - run: ./scripts/test-java.sh
       - uses: actions/upload-artifact@v4
         with:
           name: CodeFile-APKs

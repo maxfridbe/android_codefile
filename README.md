@@ -43,6 +43,7 @@ Requires Python 3 and Docker/Podman. No Node/npm or browser tooling is required.
 # Reuse an existing AndroidBase image:
 SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitTest' ./build.sh codefile
 ./scripts/test-java.sh
+python3 scripts/audit-native-apk.py output/codefile/codefile-$(cat VERSION)-release.apk
 ```
 
 APKs: `output/codefile/`. Signing uses the existing private `keystore/`, excluded from source control. Back it up for future updates. CI builds/tests and uploads artifacts; it does not publish releases.
@@ -51,7 +52,7 @@ APKs: `output/codefile/`. Signing uses the existing private `keystore/`, exclude
 
 ## Verification and limits
 
-Native Robolectric tests cover the Android activity and read-only editor, absence of browser Views, incoming text intents, native settings, and gzip reports. Pure Java tests exercise source references, formatting, snippet fences, symbol lookup, diff patches, and API endpoint rules. A physical device is needed to verify installed document/share providers and your live API/LSP servers.
+Native Robolectric tests cover the Android activity and read-only editor, absence of browser Views, incoming text intents, native settings, gzip reports, touch pinch zoom, visible word wrapping, and simulated tablet/hinge layouts. Release auditing rejects WebView DEX references and browser runtime assets. Pure Java tests exercise source references, formatting, snippet fences, symbol lookup, diff patches, and API endpoint rules. A physical device is needed to verify installed document/share providers and your live API/LSP servers.
 
 Limits: 8 MiB text per file; 20 tabs; 1 MiB for formatting/navigation; 1 MiB / 20,000 combined lines per diff; 180,000 characters per text snippet and 120,000 per analysis. UTF-8 and BOM-marked UTF-16 are accepted. Documents remain in memory and are not restored after process death. Long-running requests have timeouts.
 
