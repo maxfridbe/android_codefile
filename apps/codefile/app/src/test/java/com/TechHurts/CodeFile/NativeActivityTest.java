@@ -583,7 +583,9 @@ public class NativeActivityTest {
   }
 
   @Test
-  public void searchHasOwnRibbonAndNoColorControls() throws Exception {
+  @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+  @Config(sdk = 28, qualifiers = "w480dp-h1000dp")
+  public void searchRibbonHasNativeColorPopupAndLabeledClear() throws Exception {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity activity = controller.get();
@@ -619,7 +621,41 @@ public class NativeActivityTest {
       pages.setAccessible(true);
       assertNull(
           ((java.util.List<View>) pages.get(activity)).get(0).findViewWithTag("searchPanel"));
-      int color = 0x70ffcc33;
+      LineSelectionEditor annotated = (LineSelectionEditor) editor;
+      annotated.highlights.apply(0, 5, 0x707ad957);
+      button(controls, "Search highlight color").performClick();
+      java.lang.reflect.Field popupField = MainActivity.class.getDeclaredField("highlightPopup");
+      popupField.setAccessible(true);
+      PopupWindow popup = (PopupWindow) popupField.get(activity);
+      assertTrue(popup.isShowing());
+      assertNotNull(find(popup.getContentView(), SeekBar.class));
+      assertSame(before, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
+      button(popup.getContentView(), "Pink").performClick();
+      button(popup.getContentView(), "Apply highlight").performClick();
+      int color = 0x70ff66bb;
+      assertEquals(
+          color,
+          editor
+              .getColorScheme()
+              .getColor(
+                  io.github.rosemoe.sora.widget.schemes.EditorColorScheme.MATCHED_TEXT_BACKGROUND));
+      assertEquals(0x707ad957, annotated.highlights.ranges().get(0).color);
+      assertTrue(button(controls, "Clear search").getText().toString().contains("Clear search"));
+      assertEquals(
+          AppTheme.resolve("Carbon", false).surface,
+          ((android.graphics.drawable.ColorDrawable) controls.getBackground()).getColor());
+      root.measure(
+          View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 480, 1000);
+      shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(500));
+      android.graphics.Bitmap bitmap =
+          android.graphics.Bitmap.createBitmap(480, 1000, android.graphics.Bitmap.Config.ARGB_8888);
+      root.draw(new android.graphics.Canvas(bitmap));
+      try (FileOutputStream out = new FileOutputStream("build/native-search.png")) {
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+      }
+
       button(controls, "Regular expression").performClick();
       query.setText("[");
       shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
@@ -628,6 +664,9 @@ public class NativeActivityTest {
       button(controls, "Clear search").performClick();
       button(controls, "Next").performClick();
       assertFalse(editor.getSearcher().hasQuery());
+      assertEquals("", query.getText().toString());
+      assertFalse(editor.getCursor().isSelected());
+      assertEquals(0x707ad957, annotated.highlights.ranges().get(0).color);
       activity.onConfigurationChanged(activity.getResources().getConfiguration());
       assertEquals(
           color,

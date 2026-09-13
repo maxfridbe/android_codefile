@@ -1,6 +1,6 @@
-# Native release validation — v26.0913.003
+# Native release validation — v26.0913.004
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752003`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752004`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
 - 43 JUnit/Robolectric tests: passed, no failures or skips.
@@ -15,12 +15,13 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752003`; minimum Android API 2
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
-- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile identity sits left of File; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
+- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile’s icon is 40dp (twice its previous size), and the top bar has no surrounding outline. Individual tabs keep their accent outlines. CodeFile identity sits left of File; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
 - Selection swatch opens a PopupWindow containing native SeekBars and a hex EditText; it no longer creates a dialog. Clear colors is directly enabled for intersecting colored selections. Tests apply and remove a multi-line highlight, preserve source text and retain annotations through configuration refresh. Range tests cover overlapping colors and partial removal; native highlight bitmap inspected.
 - Incoming ClipData text is accepted with its suggested filename. File → Save launches ACTION_CREATE_DOCUMENT and writes exact UTF-8 text through the content resolver.
 - PDF tests clip annotation spans to exact selected text, paginate the native text layout, check rendered highlight color pixels, and verify application/pdf provider MIME. The same page drawing code feeds Android PdfDocument canvases. Android PdfDocument’s file writer is not implemented by this Robolectric version; actual PDF serialization and installed share targets remain device checks.
 - Standard native selection toolbar is enabled and its Copy action writes the selected text to Android’s clipboard.
-- Search is inline in a separate Search ribbon, with tests asserting that opening it creates no dialog, File has no search panel, and search color controls are absent. Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing.
+- Search has a single swatch opening the shared native color popup. Tests apply a search color, verify persistence after configuration refresh, verify the matching ribbon surface, and check that labeled Clear search removes the query/match selection without changing manual highlight annotations. Native Search screenshot inspected.
+- Search is inline in a separate Search ribbon, with tests asserting that opening it creates no dialog, File has no search panel, and there are no duplicate search actions or exposed preset-color rows. Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing.
 - YAML tests cover comments, quoted scalars, block content, indentation, aliases, custom tags, multiple documents, invalid input and idempotence. Inline-commented flow collections retain flow layout to preserve their comments.
 - CSV/TSV tests cover escaped quotes, multiline fields, empty fields, leading zeros, significant spaces and malformed quotes. JSON Lines preserves large numeric tokens; Markdown preserves hard-break spaces. XML preserves mixed content and rejects DTDs/external entities.
 - All bundled grammar catalog entries load. Data-table records are parsed off the UI thread.
@@ -30,7 +31,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752003`; minimum Android API 2
 Release SHA-256:
 
 ```
-749508c24ea48882a4cdc88971465cd9ec26f52085390a8bb91dc890daaa0a42
+43d7f89a2fab57b7207501b28e794c2311cc94886324127ccb93ceba7dbd887b
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

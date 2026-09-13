@@ -57,6 +57,7 @@ public class MainActivity extends Activity {
   private final List<Button> highlightSwatches = new ArrayList<>();
   private PopupWindow highlightPopup;
   private final List<Button> clearColorButtons = new ArrayList<>();
+  private Button searchHighlightButton;
   private NativeSearch inlineSearch;
   private EditText searchQuery;
   private final List<View> ribbonPages = new ArrayList<>();
@@ -395,18 +396,17 @@ public class MainActivity extends Activity {
     workspace.addView(reader);
     root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout ribbonTabs = new RibbonTabs(this);
-    ((RibbonTabs) ribbonTabs).setAccent(accent);
     LinearLayout identity = row();
     identity.setTag("identity");
     ImageView logo = new ImageView(this);
     logo.setImageResource(R.drawable.ic_launcher);
     logo.setContentDescription("CodeFile logo");
-    identity.addView(logo, new LinearLayout.LayoutParams(dp(20), dp(20)));
+    identity.addView(logo, new LinearLayout.LayoutParams(dp(40), dp(40)));
     TextView appName = label("CodeFile", 12, fg);
     appName.setPadding(dp(3), 0, 0, 0);
     appName.setSingleLine(true);
     identity.addView(appName, new LinearLayout.LayoutParams(-2, -2));
-    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(78), dp(40)));
+    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(100), dp(40)));
     String[] groups = {"File", "Search", "View", "Code", "Support"};
     int[] pageIndices = {0, 4, 1, 2, 3};
     int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0625};
@@ -552,7 +552,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.003")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.004")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -651,7 +651,8 @@ public class MainActivity extends Activity {
     scheme.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.TEXT_NORMAL, fg);
-    scheme.setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, 0x70ffcc33);
+    scheme.setColor(
+        EditorColorScheme.MATCHED_TEXT_BACKGROUND, prefs.getInt("searchColor", 0x70ffcc33));
     scheme.setColor(EditorColorScheme.LINE_NUMBER, muted);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_CURRENT, accent);
     scheme.setColor(EditorColorScheme.LINE_DIVIDER, (accent & 0xffffff) | 0x55000000);
@@ -896,9 +897,17 @@ public class MainActivity extends Activity {
     queryRow.addView(
         quickAction("Next", 0xf0142, inlineSearch::next),
         new LinearLayout.LayoutParams(dp(36), dp(44)));
-    queryRow.addView(
-        quickAction("Clear search", 0xf0156, inlineSearch::clear),
-        new LinearLayout.LayoutParams(dp(36), dp(44)));
+    searchHighlightButton = button("Search highlight color", 0xf0763, () -> {});
+    searchHighlightButton.setText(iconText(0xf0763, ""));
+    searchHighlightButton.setPadding(0, 0, 0, 0);
+    searchHighlightButton.setTextSize(22);
+    searchHighlightButton.setTag("searchHighlightSwatch");
+    searchHighlightButton.setOnClickListener(this::pickSearchColor);
+    options.addView(searchHighlightButton, new LinearLayout.LayoutParams(dp(48), dp(44)));
+    Button clearSearch = button("Clear search", 0xf0156, inlineSearch::clear);
+    clearSearch.setTextSize(11);
+    clearSearch.setPadding(dp(4), 0, dp(4), 0);
+    options.addView(clearSearch, new LinearLayout.LayoutParams(0, dp(44), 1));
     content.addView(queryRow);
     content.addView(options, new LinearLayout.LayoutParams(-1, dp(44)));
     summary.setPadding(dp(6), 0, 0, 0);
@@ -920,7 +929,10 @@ public class MainActivity extends Activity {
   }
 
   private void tintHighlightSwatch(Button swatch) {
-    int color = prefs.getInt("selectionHighlightColor", 0xffffcc33);
+    int color =
+        "searchHighlightSwatch".equals(swatch.getTag())
+            ? prefs.getInt("searchColor", 0x70ffcc33) | 0xff000000
+            : prefs.getInt("selectionHighlightColor", 0xffffcc33);
     GradientDrawable box = new GradientDrawable();
     box.setColor(color);
     box.setCornerRadius(dp(6));
@@ -940,9 +952,55 @@ public class MainActivity extends Activity {
     Document doc = current;
     TextHighlights annotations = doc.formatted ? doc.previewHighlights : doc.originalHighlights;
     int start = editor.getCursor().getLeft(), end = editor.getCursor().getRight();
+    openColorPopup(
+        anchor,
+        prefs.getInt("selectionHighlightColor", 0xffffcc33),
+        "Highlights stay with this open document. Source text is unchanged.",
+        color -> applySelectionColor(annotations, start, end, color),
+        "Clear colors",
+        () -> {
+          annotations.apply(start, end, 0);
+          editor.invalidate();
+          updateColorActions();
+        });
+  }
+
+  private void applySelectionColor(TextHighlights annotations, int start, int end, int color) {
+    annotations.apply(start, end, (color & 0xffffff) | 0x70000000);
+    prefs.edit().putInt("selectionHighlightColor", color).apply();
+    for (Button swatch : highlightSwatches) tintHighlightSwatch(swatch);
+    editor.setSelection(editor.getCursor().getRightLine(), editor.getCursor().getRightColumn());
+    editor.invalidate();
+    updateColorActions();
+  }
+
+  private void pickSearchColor(View anchor) {
+    openColorPopup(
+        anchor,
+        prefs.getInt("searchColor", 0x70ffcc33) | 0xff000000,
+        "Color for search matches",
+        this::applySearchColor,
+        "Clear search",
+        inlineSearch::clear);
+  }
+
+  private void applySearchColor(int color) {
+    int highlight = (color & 0xffffff) | 0x70000000;
+    prefs.edit().putInt("searchColor", highlight).apply();
+    editor.getColorScheme().setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, highlight);
+    tintHighlightSwatch(searchHighlightButton);
+    editor.invalidate();
+  }
+
+  private void openColorPopup(
+      View anchor,
+      int initial,
+      String explanation,
+      java.util.function.IntConsumer apply,
+      String clearLabel,
+      Runnable clear) {
     LinearLayout content = column();
-    HighlightColorPicker picker =
-        new HighlightColorPicker(this, prefs.getInt("selectionHighlightColor", 0xffffcc33), fg);
+    HighlightColorPicker picker = new HighlightColorPicker(this, initial, fg);
     content.addView(picker);
     LinearLayout presets = row();
     int[] colors = {0xffffcc33, 0xff40cfff, 0xffff66bb, 0xff7ad957};
@@ -955,8 +1013,7 @@ public class MainActivity extends Activity {
       presets.addView(preset, new LinearLayout.LayoutParams(0, dp(48), 1));
     }
     content.addView(presets);
-    content.addView(
-        label("Highlights stay with this open document. Source text is unchanged.", 11, muted));
+    content.addView(label(explanation, 11, muted));
     if (highlightPopup != null) highlightPopup.dismiss();
     PopupWindow popup = new PopupWindow(this);
     highlightPopup = popup;
@@ -967,14 +1024,7 @@ public class MainActivity extends Activity {
             0xf012c,
             () -> {
               try {
-                int color = picker.color();
-                annotations.apply(start, end, (color & 0xffffff) | 0x70000000);
-                prefs.edit().putInt("selectionHighlightColor", color).apply();
-                for (Button swatch : highlightSwatches) tintHighlightSwatch(swatch);
-                editor.setSelection(
-                    editor.getCursor().getRightLine(), editor.getCursor().getRightColumn());
-                editor.invalidate();
-                updateColorActions();
+                apply.accept(picker.color());
                 popup.dismiss();
               } catch (IllegalArgumentException error) {
                 toast(error.getMessage());
@@ -982,12 +1032,10 @@ public class MainActivity extends Activity {
             }));
     actions.addView(
         button(
-            "Clear colors",
+            clearLabel,
             0xf0156,
             () -> {
-              annotations.apply(start, end, 0);
-              editor.invalidate();
-              updateColorActions();
+              clear.run();
               popup.dismiss();
             }));
     content.addView(actions);
@@ -1272,8 +1320,7 @@ public class MainActivity extends Activity {
 
   private void recolor(View v) {
     if (v instanceof CodeEditor) return;
-    if (v instanceof RibbonTabs) ((RibbonTabs) v).setAccent(accent);
-    if ("highlightSwatch".equals(v.getTag())) {
+    if ("highlightSwatch".equals(v.getTag()) || "searchHighlightSwatch".equals(v.getTag())) {
       tintHighlightSwatch((Button) v);
       return;
     }

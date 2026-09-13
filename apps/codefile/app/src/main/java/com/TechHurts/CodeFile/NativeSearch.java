@@ -7,6 +7,8 @@ import io.github.rosemoe.sora.widget.*;
 
 /** Binds native search controls to asynchronous editor results; owns its subscriptions. */
 final class NativeSearch implements AutoCloseable {
+  private final CodeEditor editor;
+  private boolean searchSelection;
   private final EditorSearcher searcher;
   private final EditText query;
   private final CheckBox matchCase, regex;
@@ -28,6 +30,7 @@ final class NativeSearch implements AutoCloseable {
 
   NativeSearch(
       CodeEditor editor, EditText query, CheckBox matchCase, CheckBox regex, TextView summary) {
+    this.editor = editor;
     this.searcher = editor.getSearcher();
     this.query = query;
     this.matchCase = matchCase;
@@ -38,7 +41,12 @@ final class NativeSearch implements AutoCloseable {
         editor.subscribeEvent(
             PublishSearchResultEvent.class, (event, unsubscribe) -> updateSummary());
     selection =
-        editor.subscribeEvent(SelectionChangeEvent.class, (event, unsubscribe) -> updateSummary());
+        editor.subscribeEvent(
+            SelectionChangeEvent.class,
+            (event, unsubscribe) -> {
+              searchSelection = event.getCause() == SelectionChangeEvent.CAUSE_SEARCH;
+              updateSummary();
+            });
     query.addTextChangedListener(watcher);
     matchCase.setOnCheckedChangeListener((button, value) -> refresh());
     regex.setOnCheckedChangeListener((button, value) -> refresh());
@@ -97,8 +105,11 @@ final class NativeSearch implements AutoCloseable {
   }
 
   void clear() {
+    boolean clearMatchSelection = searchSelection && editor.getCursor().isSelected();
     query.setText("");
     refresh();
+    if (clearMatchSelection)
+      editor.setSelection(editor.getCursor().getLeftLine(), editor.getCursor().getLeftColumn());
   }
 
   public void close() {
