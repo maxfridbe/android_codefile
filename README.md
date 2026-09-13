@@ -1,19 +1,22 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0912.003`
+`com.TechHurts.CodeFile` · `v26.0912.004`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
 ## Features
 
 - Responsive phone, tablet, split-screen and foldable layouts. Expanded windows use a side control pane; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
+- File / View / Code ribbon with wrapping 48dp actions. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. The viewer header has no logo.
 - Read-only, selectable code with native scrolling, line numbers, wrapping, bracket matching, block guides, current-line highlighting, adjustable font/spacing, and whitespace display.
 - 68 bundled language definitions / 78 TextMate grammars, including Java, Kotlin, JS/TS/JSX/TSX, Python, C/C++, C#, Rust, Go, Swift, PHP, HTML/XML, CSS, SQL, shell, Markdown, JSON/YAML/TOML and more. Manual language selection; unknown formats use plain text.
 - System document picker, multiple open files, paste, VIEW/EDIT, SEND/SEND_MULTIPLE, and PROCESS_TEXT intents. Original documents are never overwritten. Export creates a UTF-8 copy.
 - Native source-reference gutter for formatted previews. `~` labels are approximate. Built-in Java routines reindent brace-based languages while preserving existing lines, strings and comments; JSON formatting changes only whitespace. A connected language server can supply full language-specific formatting. This is not Prettier and does not rewrite quotes or semicolons. Python and other unsupported local formats require a server formatter.
+- Native YAML node formatting retains comments, scalar styles, aliases, custom tags and multiple documents. Inline-commented flow collections retain flow style. CSV/TSV formatting preserves field values; the Code → Table action supports comma, tab, semicolon and pipe delimiters with quoted/multiline fields. Table parsing is off the UI thread. XML pretty printing preserves mixed content and rejects DTDs/external entities. JSON Lines compaction preserves numeric tokens. TXT/log/INI/properties/TOML/Markdown keep meaningful whitespace and normalize line endings only.
 - Native unified / side-by-side diff lists, line numbers, changed-text highlights, collapsed unchanged regions, previous/next change, patch export, sharing, and analysis. Both panes share row positions and vertical scrolling; long lines wrap.
 - Native settings, search, line navigation, selection-based snippet ranges, Markdown fencing, clipboard, share chooser, and AI responses. All app action buttons use embedded Nerd Font glyphs.
-- Six palettes plus system matching. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
+- Always-accessible Search action with live native match highlighting, match counts, next/previous, case matching, regex validation, and persistent yellow/cyan/pink/green highlight colors.
+- Grouped, collapsible Settings sections with immediate theme application; changing a theme keeps the same editor and document. Six palettes plus system matching. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
 - Native gzip diagnostic-log sharing with `ACTION_SEND`, `application/gzip`, a read-only content provider, and temporary URI permission. Reports omit source, prompts, responses, endpoint URLs, and credentials.
 
 ## Navigation and LSP
@@ -41,7 +44,7 @@ Requires Python 3 and Docker/Podman. No Node/npm or browser tooling is required.
 ```sh
 ./build.sh codefile
 # Reuse an existing AndroidBase image:
-SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitTest' ./build.sh codefile
+SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle' ./build.sh codefile
 ./scripts/test-java.sh
 python3 scripts/audit-native-apk.py output/codefile/codefile-$(cat VERSION)-release.apk
 ```
@@ -61,3 +64,9 @@ Limits: 8 MiB text per file; 20 tabs; 1 MiB for formatting/navigation; 1 MiB / 2
 Bundled notices and font licenses are available in Settings. Sora is unmodified LGPL-2.1-or-later; its corresponding source is included in `third-party/source/sora-editor-0.23.4.tar.gz`. To relink a modified editor, build the source modules as AARs, replace the two Sora dependencies in the app's Gradle file with local AAR dependencies (retaining their transitive dependencies), and rebuild using this source workspace. Reverse engineering for debugging modifications of the LGPL component is permitted.
 
 Grammar provenance: VS Code 1.95.3 extensions (MIT and upstream notices), plus Kotlin/Lua grammars from Sora's sample. Sources and licenses are listed in `apps/codefile/app/src/main/assets/NOTICES.txt`. The original supplied SVG remains in `assets/codefile-logo.svg`.
+
+## Code quality
+
+Native Java source is formatted with google-java-format 1.22.0. `checkNativeStyle` enforces maximum nesting for `if`, `for`, and `try` blocks in CI. Ribbon layout, fold layout, table rendering and data formatting live in separate classes; formatting and table background work use named methods to avoid nested callback chains. The installed `android-dev` skill includes a Java-specific reference used during this review.
+
+YAML dependency: SnakeYAML Engine 2.9, Apache-2.0. The app composes data nodes and emits them without constructing arbitrary Java objects. Its license is bundled with Settings → About & diagnostics → Open-source licenses.

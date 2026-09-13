@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    checkstyle
 }
 
 // Injected by build.sh; null only for builds outside the build system,
@@ -16,8 +17,8 @@ android {
         targetSdk = 34
         // Injected by build.sh from git (commit count / git describe);
         // the defaults only apply to builds outside the build system.
-        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9751003
-        versionName = findProperty("appVersionName") as String? ?: "v26.0912.003"
+        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9751004
+        versionName = findProperty("appVersionName") as String? ?: "v26.0912.004"
     }
 
     if (sharedKeystore != null) {
@@ -59,9 +60,20 @@ dependencies {
     implementation("io.github.Rosemoe.sora-editor:language-textmate:0.23.4")
     implementation("androidx.core:core:1.12.0")
     implementation("androidx.window:window-java:1.2.0")
+    implementation("org.snakeyaml:snakeyaml-engine:2.9")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.github.java-diff-utils:java-diff-utils:4.15")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.12.2")
+}
+
+checkstyle { toolVersion = "10.17.0" }
+tasks.register<Checkstyle>("checkNativeStyle") {
+    description = "Reject excessive nesting in native Java code."
+    source("src/main/java")
+    include("**/*.java")
+    classpath = files()
+    configFile = rootProject.file("checkstyle.xml")
+    isIgnoreFailures = false
 }

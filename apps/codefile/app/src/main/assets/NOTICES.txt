@@ -20,3 +20,8 @@ JetBrains Mono Nerd Font and Fira Code Nerd Font are bundled under SIL OFL 1.1.
 See the font licenses in fonts/.
 
 No browser, HTML renderer, JavaScript runtime, or WebView is used by CodeFile.
+
+SnakeYAML Engine 2.9 — Apache License 2.0
+https://bitbucket.org/snakeyaml/snakeyaml-engine
+Native YAML node parsing/emission (no Java object construction).
+See textmate/LICENSE-snakeyaml.txt.

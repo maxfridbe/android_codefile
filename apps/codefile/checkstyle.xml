@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+  <module name="TreeWalker">
+    <!-- Prefer guard clauses and named helpers over stairstep control flow. -->
+    <module name="NestedIfDepth"><property name="max" value="3"/></module>
+    <module name="NestedForDepth"><property name="max" value="2"/></module>
+    <module name="NestedTryDepth"><property name="max" value="2"/></module>
+  </module>
+</module>
