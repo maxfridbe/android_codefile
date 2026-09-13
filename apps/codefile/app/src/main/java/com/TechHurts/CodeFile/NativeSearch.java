@@ -104,6 +104,19 @@ final class NativeSearch implements AutoCloseable {
     updateSummary();
   }
 
+  void applyHighlights(TextHighlights annotations, int color) {
+    String term = query.getText().toString();
+    if (term.isEmpty()) throw new IllegalArgumentException("Enter a search term first");
+    int flags = java.util.regex.Pattern.MULTILINE;
+    if (!matchCase.isChecked()) flags |= java.util.regex.Pattern.CASE_INSENSITIVE;
+    String expression = regex.isChecked() ? term : java.util.regex.Pattern.quote(term);
+    java.util.regex.Matcher matches =
+        java.util.regex.Pattern.compile(expression, flags).matcher(editor.getText().toString());
+    while (matches.find()) {
+      if (matches.end() > matches.start()) annotations.apply(matches.start(), matches.end(), color);
+    }
+  }
+
   void clear() {
     boolean clearMatchSelection = searchSelection && editor.getCursor().isSelected();
     query.setText("");

@@ -630,7 +630,8 @@ public class NativeActivityTest {
       assertTrue(popup.isShowing());
       assertNotNull(find(popup.getContentView(), SeekBar.class));
       assertSame(before, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
-      button(popup.getContentView(), "Pink").performClick();
+      assertNull(button(popup.getContentView(), "Pink"));
+      find(popup.getContentView(), EditText.class).setText("#FF66BB");
       button(popup.getContentView(), "Apply highlight").performClick();
       int color = 0x70ff66bb;
       assertEquals(
@@ -640,6 +641,10 @@ public class NativeActivityTest {
               .getColor(
                   io.github.rosemoe.sora.widget.schemes.EditorColorScheme.MATCHED_TEXT_BACKGROUND));
       assertEquals(0x707ad957, annotated.highlights.ranges().get(0).color);
+      assertEquals(2, annotated.highlights.ranges().size());
+      assertEquals(6, annotated.highlights.ranges().get(1).start);
+      assertEquals(11, annotated.highlights.ranges().get(1).end);
+      assertEquals(color, annotated.highlights.ranges().get(1).color);
       assertTrue(button(controls, "Clear search").getText().toString().contains("Clear search"));
       assertEquals(
           AppTheme.resolve("Carbon", false).surface,
@@ -657,6 +662,9 @@ public class NativeActivityTest {
       }
 
       button(controls, "Regular expression").performClick();
+      query.setText("ALPHA");
+      awaitMatches(editor, 1);
+      assertEquals(color, annotated.highlights.ranges().get(1).color);
       query.setText("[");
       shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
       assertNotNull(query.getError());
@@ -667,6 +675,10 @@ public class NativeActivityTest {
       assertEquals("", query.getText().toString());
       assertFalse(editor.getCursor().isSelected());
       assertEquals(0x707ad957, annotated.highlights.ranges().get(0).color);
+      assertEquals(2, annotated.highlights.ranges().size());
+      assertEquals(6, annotated.highlights.ranges().get(1).start);
+      assertEquals(11, annotated.highlights.ranges().get(1).end);
+      assertEquals(color, annotated.highlights.ranges().get(1).color);
       activity.onConfigurationChanged(activity.getResources().getConfiguration());
       assertEquals(
           color,
@@ -714,7 +726,8 @@ public class NativeActivityTest {
       PopupWindow picker = (PopupWindow) popupField.get(activity);
       assertTrue(picker.isShowing());
       assertNotNull(find(picker.getContentView(), SeekBar.class));
-      button(picker.getContentView(), "Pink").performClick();
+      assertNull(button(picker.getContentView(), "Pink"));
+      find(picker.getContentView(), EditText.class).setText("#FF66BB");
       button(picker.getContentView(), "Apply highlight").performClick();
       assertEquals(1, editor.highlights.ranges().size());
       assertEquals(0x70ff66bb, editor.highlights.ranges().get(0).color);

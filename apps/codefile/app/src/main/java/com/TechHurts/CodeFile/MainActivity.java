@@ -402,11 +402,7 @@ public class MainActivity extends Activity {
     logo.setImageResource(R.drawable.ic_launcher);
     logo.setContentDescription("CodeFile logo");
     identity.addView(logo, new LinearLayout.LayoutParams(dp(40), dp(40)));
-    TextView appName = label("CodeFile", 12, fg);
-    appName.setPadding(dp(3), 0, 0, 0);
-    appName.setSingleLine(true);
-    identity.addView(appName, new LinearLayout.LayoutParams(-2, -2));
-    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(100), dp(40)));
+    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(44), dp(40)));
     String[] groups = {"File", "Search", "View", "Code", "Support"};
     int[] pageIndices = {0, 4, 1, 2, 3};
     int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0625};
@@ -552,7 +548,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.004")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.005")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -978,7 +974,7 @@ public class MainActivity extends Activity {
     openColorPopup(
         anchor,
         prefs.getInt("searchColor", 0x70ffcc33) | 0xff000000,
-        "Color for search matches",
+        "Apply keeps these matches highlighted when you change or clear the search.",
         this::applySearchColor,
         "Clear search",
         inlineSearch::clear);
@@ -986,6 +982,10 @@ public class MainActivity extends Activity {
 
   private void applySearchColor(int color) {
     int highlight = (color & 0xffffff) | 0x70000000;
+    if (current == null) return;
+    TextHighlights annotations =
+        current.formatted ? current.previewHighlights : current.originalHighlights;
+    inlineSearch.applyHighlights(annotations, highlight);
     prefs.edit().putInt("searchColor", highlight).apply();
     editor.getColorScheme().setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, highlight);
     tintHighlightSwatch(searchHighlightButton);
@@ -1002,17 +1002,6 @@ public class MainActivity extends Activity {
     LinearLayout content = column();
     HighlightColorPicker picker = new HighlightColorPicker(this, initial, fg);
     content.addView(picker);
-    LinearLayout presets = row();
-    int[] colors = {0xffffcc33, 0xff40cfff, 0xffff66bb, 0xff7ad957};
-    String[] names = {"Yellow", "Cyan", "Pink", "Green"};
-    for (int i = 0; i < colors.length; i++) {
-      final int color = colors[i];
-      Button preset = button(names[i], 0xf0763, () -> picker.setColor(color));
-      preset.setText(iconText(0xf0763, ""));
-      preset.setTextColor(color);
-      presets.addView(preset, new LinearLayout.LayoutParams(0, dp(48), 1));
-    }
-    content.addView(presets);
     content.addView(label(explanation, 11, muted));
     if (highlightPopup != null) highlightPopup.dismiss();
     PopupWindow popup = new PopupWindow(this);
