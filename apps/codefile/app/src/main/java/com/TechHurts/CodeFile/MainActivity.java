@@ -539,7 +539,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.009")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.010")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -655,6 +655,8 @@ public class MainActivity extends Activity {
     scheme.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.TEXT_NORMAL, fg);
+    scheme.setColor(
+        EditorColorScheme.NON_PRINTABLE_CHAR, selectedTheme().light ? 0xff777777 : 0xff858585);
     scheme.setColor(
         EditorColorScheme.MATCHED_TEXT_BACKGROUND, prefs.getInt("searchColor", 0x70ffcc33));
     scheme.setColor(EditorColorScheme.LINE_NUMBER, muted);

@@ -1,12 +1,13 @@
-# Native release validation — v26.0913.009
+# Native release validation — v26.0913.010
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752009`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752010`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
 - 47 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
+- Whitespace markers explicitly use the editor NON_PRINTABLE_CHAR color: neutral #777777 on light themes and #858585 on dark themes, reapplied with appearance changes.
 - Theme selection immediately repaints the existing editor without replacing its document. All 14 palettes load native syntax themes; foreground contrast is at least 4.5:1 and accent contrast at least 3:1 against the editor background.
 - Slow upward gutter dragging selects complete lines, excluding the following line; selection actions include Share and Ask LLM.
 - Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
@@ -36,7 +37,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752009`; minimum Android API 2
 Release SHA-256:
 
 ```
-5605e06455f979987b82f081384c20cd9ec0c2858bff8d0493ebf86191ca16c0
+977bd684cce0dea042a16771a04cc60f4c8059213728a663b681f17ac794c096
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.
