@@ -37,6 +37,11 @@ final class TextHighlights {
     ranges.addAll(next);
   }
 
+  boolean intersects(int start, int end) {
+    for (Range range : ranges) if (range.start < end && range.end > start) return true;
+    return false;
+  }
+
   void clear() {
     ranges.clear();
   }

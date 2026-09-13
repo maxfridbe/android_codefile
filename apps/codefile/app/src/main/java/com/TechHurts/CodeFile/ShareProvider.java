@@ -33,9 +33,10 @@ public class ShareProvider extends ContentProvider {
   }
 
   public String getType(Uri uri) {
-    return uri.getLastPathSegment() != null && uri.getLastPathSegment().endsWith(".gz")
-        ? "application/gzip"
-        : "text/plain";
+    String name = uri.getLastPathSegment();
+    if (name != null && name.endsWith(".gz")) return "application/gzip";
+    if (name != null && name.endsWith(".pdf")) return "application/pdf";
+    return "text/plain";
   }
 
   public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {

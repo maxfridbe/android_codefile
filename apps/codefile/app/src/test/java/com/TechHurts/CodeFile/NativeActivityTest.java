@@ -96,6 +96,37 @@ public class NativeActivityTest {
   }
 
   @Test
+  public void incomingClipTextCanBeSavedAsUtf8() throws Exception {
+    Intent incoming =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TITLE, "shared.yaml");
+    incoming.setClipData(ClipData.newPlainText("source", "name: café\n"));
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, incoming).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals("name: café\n", find(root, CodeEditor.class).getText().toString());
+      button(root, "Save").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      org.robolectric.shadows.ShadowActivity.IntentForResult request =
+          shadowOf(activity).getNextStartedActivityForResult();
+      assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.intent.getAction());
+      assertEquals("shared.yaml", request.intent.getStringExtra(Intent.EXTRA_TITLE));
+      android.net.Uri uri = android.net.Uri.parse("content://test/output.yaml");
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      shadowOf(activity.getContentResolver()).registerOutputStream(uri, output);
+      activity.onActivityResult(request.requestCode, Activity.RESULT_OK, new Intent().setData(uri));
+      for (int i = 0; i < 100 && output.size() == 0; i++) {
+        Thread.sleep(10);
+        shadowOf(Looper.getMainLooper()).idle();
+      }
+      assertEquals("name: café\n", output.toString("UTF-8"));
+    }
+  }
+
+  @Test
   public void sourceFromShareIntentIsNotExecutable() {
     Intent intent =
         new Intent(Intent.ACTION_SEND)
@@ -567,7 +598,8 @@ public class NativeActivityTest {
       }
       editor.setText("Alpha alpha ALPHA\n");
       AlertDialog before = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      button(root, "Find").performClick();
+      button(root, "Search").performClick();
+      assertNull(button(root, "Find"));
       assertSame(
           "Search stays inline",
           before,
@@ -593,7 +625,7 @@ public class NativeActivityTest {
       shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
       assertNotNull(query.getError());
       assertFalse(editor.getSearcher().hasQuery());
-      button(controls, "Clear").performClick();
+      button(controls, "Clear search").performClick();
       button(controls, "Next").performClick();
       assertFalse(editor.getSearcher().hasQuery());
       activity.onConfigurationChanged(activity.getResources().getConfiguration());
@@ -638,9 +670,13 @@ public class NativeActivityTest {
           editor.getComponent(io.github.rosemoe.sora.widget.component.EditorTextActionWindow.class);
       toolbar.displayWindow();
       button(toolbar.getView(), "Highlight color").performClick();
-      AlertDialog picker = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      button(picker.getWindow().getDecorView(), "Pink").performClick();
-      button(picker.getWindow().getDecorView(), "Apply highlight").performClick();
+      java.lang.reflect.Field popupField = MainActivity.class.getDeclaredField("highlightPopup");
+      popupField.setAccessible(true);
+      PopupWindow picker = (PopupWindow) popupField.get(activity);
+      assertTrue(picker.isShowing());
+      assertNotNull(find(picker.getContentView(), SeekBar.class));
+      button(picker.getContentView(), "Pink").performClick();
+      button(picker.getContentView(), "Apply highlight").performClick();
       assertEquals(1, editor.highlights.ranges().size());
       assertEquals(0x70ff66bb, editor.highlights.ranges().get(0).color);
       assertFalse(editor.getCursor().isSelected());
@@ -658,9 +694,8 @@ public class NativeActivityTest {
         bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
       }
       editor.setSelectionRegion(1, 0, 2, 8);
-      button(toolbar.getView(), "Highlight color").performClick();
-      AlertDialog remove = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      button(remove.getWindow().getDecorView(), "Remove highlight").performClick();
+      assertTrue(button(toolbar.getView(), "Clear colors").isEnabled());
+      button(toolbar.getView(), "Clear colors").performClick();
       assertTrue(editor.highlights.ranges().isEmpty());
     }
   }

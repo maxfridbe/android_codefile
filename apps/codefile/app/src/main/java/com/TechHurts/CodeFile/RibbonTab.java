@@ -29,6 +29,7 @@ final class RibbonTab extends Button {
   public void setSelected(boolean selected) {
     super.setSelected(selected);
     refresh();
+    if (getParent() instanceof android.view.View) ((android.view.View) getParent()).invalidate();
   }
 
   private void refresh() {

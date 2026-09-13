@@ -55,6 +55,8 @@ public class MainActivity extends Activity {
   private AlertDialog settingsDialog;
   private String lastSearchTerm = "";
   private final List<Button> highlightSwatches = new ArrayList<>();
+  private PopupWindow highlightPopup;
+  private final List<Button> clearColorButtons = new ArrayList<>();
   private NativeSearch inlineSearch;
   private EditText searchQuery;
   private final List<View> ribbonPages = new ArrayList<>();
@@ -393,6 +395,7 @@ public class MainActivity extends Activity {
     workspace.addView(reader);
     root.addView(workspace, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout ribbonTabs = new RibbonTabs(this);
+    ((RibbonTabs) ribbonTabs).setAccent(accent);
     LinearLayout identity = row();
     identity.setTag("identity");
     ImageView logo = new ImageView(this);
@@ -442,12 +445,12 @@ public class MainActivity extends Activity {
     fileActions.addView(button("Open", 0xf0770, actions::open));
     fileActions.addView(button("Paste", 0xf0192, this::paste));
     fileActions.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
-    fileActions.addView(button("Close", 0xf0156, this::closeCurrent));
+    fileActions.addView(button("Share PDF", 0xf0226, this::sharePdf));
     fileActions.addView(button("Share", 0xf0497, this::shareCurrent));
     fileActions.addView(
         button(
-            "Export",
-            0xf021d,
+            "Save",
+            0xf0193,
             () -> actions.save(current.name, current.formatted ? current.text() : current.raw)));
     ribbonPage(fileActions);
     documentRow = row();
@@ -465,7 +468,14 @@ public class MainActivity extends Activity {
     title = label("", 11, muted);
 
     LinearLayout tools = row();
-    tools.addView(button("Find", 0xf0349, this::find));
+    tools.addView(
+        button(
+            "Numbers",
+            0xf027b,
+            () -> {
+              prefs.edit().putBoolean("numbers", !prefs.getBoolean("numbers", true)).apply();
+              configureEditor(editor);
+            }));
     tools.addView(button("Line", 0xf027b, this::goTo));
     tools.addView(
         button(
@@ -542,7 +552,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.002")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.003")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -554,12 +564,21 @@ public class MainActivity extends Activity {
     ribbonBody.addView(searchPage, new LinearLayout.LayoutParams(-1, -2));
     searchPage.setVisibility(ribbonTab == 4 ? View.VISIBLE : View.GONE);
     highlightSwatches.clear();
+    clearColorButtons.clear();
     EditorTextActionWindow selectionToolbar = editor.getComponent(EditorTextActionWindow.class);
     selectionToolbar
         .getView()
         .addView(highlightSwatch(), new LinearLayout.LayoutParams(dp(48), dp(48)));
+    selectionToolbar
+        .getView()
+        .addView(clearColorsButton(true), new LinearLayout.LayoutParams(dp(48), dp(48)));
 
-    editor.subscribeEvent(SelectionChangeEvent.class, (event, unsubscribe) -> updateStatus());
+    editor.subscribeEvent(
+        SelectionChangeEvent.class,
+        (event, unsubscribe) -> {
+          updateStatus();
+          updateColorActions();
+        });
     editor.subscribeEvent(
         ScrollEvent.class,
         (event, unsubscribe) -> {
@@ -847,14 +866,6 @@ public class MainActivity extends Activity {
         .show();
   }
 
-  private void find() {
-    selectRibbon(4);
-    ((RibbonPage) ribbonPages.get(4)).smoothScrollTo(0, 0);
-    searchQuery.requestFocus();
-    ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
-        .showSoftInput(searchQuery, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
-  }
-
   private LinearLayout buildInlineSearch() {
     LinearLayout content = column();
     content.setPadding(dp(4), dp(3), dp(4), 0);
@@ -886,7 +897,7 @@ public class MainActivity extends Activity {
         quickAction("Next", 0xf0142, inlineSearch::next),
         new LinearLayout.LayoutParams(dp(36), dp(44)));
     queryRow.addView(
-        quickAction("Clear", 0xf0156, inlineSearch::clear),
+        quickAction("Clear search", 0xf0156, inlineSearch::clear),
         new LinearLayout.LayoutParams(dp(36), dp(44)));
     content.addView(queryRow);
     content.addView(options, new LinearLayout.LayoutParams(-1, dp(44)));
@@ -897,7 +908,8 @@ public class MainActivity extends Activity {
   }
 
   private Button highlightSwatch() {
-    Button swatch = button("Highlight color", 0xf0763, this::pickHighlightColor);
+    Button swatch = button("Highlight color", 0xf0763, () -> {});
+    swatch.setOnClickListener(this::pickHighlightColor);
     swatch.setText(iconText(0xf0763, ""));
     swatch.setPadding(0, 0, 0, 0);
     swatch.setTextSize(22);
@@ -920,7 +932,7 @@ public class MainActivity extends Activity {
             : Color.WHITE);
   }
 
-  private void pickHighlightColor() {
+  private void pickHighlightColor(View anchor) {
     if (current == null || !editor.getCursor().isSelected()) {
       toast("Select text to highlight");
       return;
@@ -945,7 +957,9 @@ public class MainActivity extends Activity {
     content.addView(presets);
     content.addView(
         label("Highlights stay with this open document. Source text is unchanged.", 11, muted));
-    final AlertDialog[] dialog = {null};
+    if (highlightPopup != null) highlightPopup.dismiss();
+    PopupWindow popup = new PopupWindow(this);
+    highlightPopup = popup;
     LinearLayout actions = row();
     actions.addView(
         button(
@@ -960,22 +974,116 @@ public class MainActivity extends Activity {
                 editor.setSelection(
                     editor.getCursor().getRightLine(), editor.getCursor().getRightColumn());
                 editor.invalidate();
-                dialog[0].dismiss();
+                updateColorActions();
+                popup.dismiss();
               } catch (IllegalArgumentException error) {
                 toast(error.getMessage());
               }
             }));
     actions.addView(
         button(
-            "Remove highlight",
+            "Clear colors",
             0xf0156,
             () -> {
               annotations.apply(start, end, 0);
               editor.invalidate();
-              dialog[0].dismiss();
+              updateColorActions();
+              popup.dismiss();
             }));
     content.addView(actions);
-    dialog[0] = dialog("Highlight color", scrolling(content));
+    popup.setContentView(scrolling(content));
+    popup.setWidth(Math.min(dp(340), Math.max(dp(240), root.getWidth() - dp(16))));
+    popup.setHeight(Math.min(dp(500), Math.max(dp(200), root.getHeight() - dp(32))));
+    popup.setFocusable(true);
+    popup.setOutsideTouchable(true);
+    popup.setElevation(dp(8));
+    GradientDrawable background = new GradientDrawable();
+    background.setColor(panel);
+    background.setCornerRadius(dp(8));
+    background.setStroke(dp(1), accent);
+    popup.setBackgroundDrawable(background);
+    popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    int[] origin = new int[2], target = new int[2];
+    root.getLocationOnScreen(origin);
+    anchor.getLocationOnScreen(target);
+    int x =
+        Math.max(origin[0], Math.min(target[0], origin[0] + root.getWidth() - popup.getWidth()));
+    int y =
+        Math.max(
+            origin[1],
+            Math.min(
+                target[1] + anchor.getHeight(), origin[1] + root.getHeight() - popup.getHeight()));
+    popup.showAtLocation(root, Gravity.TOP | Gravity.START, x, y);
+  }
+
+  private Button clearColorsButton(boolean compact) {
+    Button clear = button("Clear colors", 0xf0232, this::clearSelectedColors);
+    if (compact) {
+      clear.setText(iconText(0xf0232, ""));
+      clear.setPadding(0, 0, 0, 0);
+      clear.setTag("compactClearColors");
+      clear.setVisibility(View.GONE);
+    }
+    clearColorButtons.add(clear);
+    clear.setEnabled(false);
+    return clear;
+  }
+
+  private void updateColorActions() {
+    if (editor == null || current == null) return;
+    TextHighlights marks =
+        current.formatted ? current.previewHighlights : current.originalHighlights;
+    boolean colored =
+        editor.getCursor().isSelected()
+            && marks.intersects(editor.getCursor().getLeft(), editor.getCursor().getRight());
+    for (Button clear : clearColorButtons) {
+      clear.setEnabled(colored);
+      if ("compactClearColors".equals(clear.getTag()))
+        clear.setVisibility(colored ? View.VISIBLE : View.GONE);
+      clear.setAlpha(colored ? 1f : .35f);
+    }
+  }
+
+  private void clearSelectedColors() {
+    if (current == null || !editor.getCursor().isSelected()) return;
+    TextHighlights marks =
+        current.formatted ? current.previewHighlights : current.originalHighlights;
+    marks.apply(editor.getCursor().getLeft(), editor.getCursor().getRight(), 0);
+    editor.invalidate();
+    updateColorActions();
+  }
+
+  private void sharePdf() {
+    if (current == null) return;
+    String source = current.text(), name = current.name;
+    int start = editor.getCursor().isSelected() ? editor.getCursor().getLeft() : 0;
+    int end = editor.getCursor().isSelected() ? editor.getCursor().getRight() : source.length();
+    TextHighlights marks =
+        current.formatted ? current.previewHighlights : current.originalHighlights;
+    List<TextHighlights.Range> snapshot = new ArrayList<>(marks.ranges());
+    Typeface font = codeFont;
+    io.execute(
+        () -> {
+          try {
+            File file = PdfShare.write(getCacheDir(), name, source, start, end, snapshot, font);
+            Uri uri =
+                new Uri.Builder()
+                    .scheme("content")
+                    .authority(getPackageName() + ".share")
+                    .appendPath(file.getName())
+                    .build();
+            Intent send =
+                new Intent(Intent.ACTION_SEND)
+                    .setType("application/pdf")
+                    .putExtra(Intent.EXTRA_STREAM, uri)
+                    .putExtra(Intent.EXTRA_SUBJECT, name)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            send.setClipData(ClipData.newRawUri(name, uri));
+            ui(() -> startActivity(Intent.createChooser(send, "Share PDF")));
+          } catch (Exception error) {
+            error("PDF: " + message(error));
+          }
+        });
   }
 
   private void goTo() {
@@ -1164,6 +1272,7 @@ public class MainActivity extends Activity {
 
   private void recolor(View v) {
     if (v instanceof CodeEditor) return;
+    if (v instanceof RibbonTabs) ((RibbonTabs) v).setAccent(accent);
     if ("highlightSwatch".equals(v.getTag())) {
       tintHighlightSwatch((Button) v);
       return;
@@ -1218,7 +1327,7 @@ public class MainActivity extends Activity {
         ((CheckBox) v).setButtonTintList(android.content.res.ColorStateList.valueOf(accent));
     }
     if (v instanceof LinearLayout && ((LinearLayout) v).getOrientation() == LinearLayout.VERTICAL)
-      v.setBackgroundColor(bg);
+      v.setBackgroundColor("searchPanel".equals(v.getTag()) ? panel : bg);
     if (v instanceof ViewGroup)
       for (int i = 0; i < ((ViewGroup) v).getChildCount(); i++)
         recolor(((ViewGroup) v).getChildAt(i));
@@ -1642,8 +1751,7 @@ public class MainActivity extends Activity {
       LinearLayout selection = row();
       selection.addView(button("Share", 0xf0497, this::shareCurrent));
       selection.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
-      selection.addView(
-          button("Export", 0xf021d, () -> actions.save(current.name, selectedSnippet(false))));
+      selection.addView(button("Share PDF", 0xf0226, this::sharePdf));
       selection.addView(button("Ask LLM", 0xf06a9, this::askSelectedLines));
       selection.addView(button("Clear", 0xf0156, this::clearSelection));
       selection.addView(
@@ -1657,7 +1765,8 @@ public class MainActivity extends Activity {
               }));
       ribbonPage(selection);
       LinearLayout colorPanel = column();
-      colorPanel.addView(highlightSwatch(), new LinearLayout.LayoutParams(dp(80), dp(92)));
+      colorPanel.addView(highlightSwatch(), new LinearLayout.LayoutParams(dp(80), dp(46)));
+      colorPanel.addView(clearColorsButton(false), new LinearLayout.LayoutParams(dp(80), dp(46)));
       TextView caption = label("Highlight", 10, muted);
       caption.setPadding(0, 0, 0, 0);
       caption.setGravity(Gravity.CENTER);
@@ -1669,7 +1778,7 @@ public class MainActivity extends Activity {
       ribbonPages.get(i).setVisibility(i == 5 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
     setRibbonCollapsed(false);
-    int[] range = selectedLines();
+    updateColorActions();
     updateStatus();
   }
 
@@ -2289,6 +2398,7 @@ public class MainActivity extends Activity {
   protected void onDestroy() {
     stopNavigation();
     if (windowTracker != null) windowTracker.removeWindowLayoutInfoListener(foldListener);
+    if (highlightPopup != null) highlightPopup.dismiss();
     if (inlineSearch != null) inlineSearch.close();
     if (editor != null) editor.release();
     io.shutdownNow();
@@ -2331,8 +2441,13 @@ public class MainActivity extends Activity {
             Intent.ACTION_PROCESS_TEXT.equals(intent.getAction())
                 ? Intent.EXTRA_PROCESS_TEXT
                 : Intent.EXTRA_TEXT);
-    if (uris.isEmpty() && text != null)
-      document("Shared snippet.txt", text.toString(), "UTF-8", "");
+    if (text == null && clip != null && clip.getItemCount() > 0) text = clip.getItemAt(0).getText();
+    if (uris.isEmpty() && text != null) {
+      String name = intent.getStringExtra(Intent.EXTRA_TITLE);
+      if (name == null || name.trim().isEmpty()) name = "Shared snippet.txt";
+      name = name.replaceAll("[/\\\\\r\n]", "_");
+      document(name, text.toString(), "UTF-8", "");
+    }
   }
 
   private static byte[] bytes(InputStream in, int limit) throws IOException {

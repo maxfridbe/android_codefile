@@ -1,9 +1,9 @@
-# Native release validation — v26.0913.002
+# Native release validation — v26.0913.003
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752002`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752003`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 40 JUnit/Robolectric tests: passed, no failures or skips.
+- 43 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
@@ -16,7 +16,9 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752002`; minimum Android API 2
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
 - Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile identity sits left of File; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
-- Selection swatch opens a native RGB/hex color picker. Tests apply and remove a multi-line highlight, preserve source text and retain annotations through configuration refresh. Range tests cover overlapping colors and partial removal; native highlight bitmap inspected.
+- Selection swatch opens a PopupWindow containing native SeekBars and a hex EditText; it no longer creates a dialog. Clear colors is directly enabled for intersecting colored selections. Tests apply and remove a multi-line highlight, preserve source text and retain annotations through configuration refresh. Range tests cover overlapping colors and partial removal; native highlight bitmap inspected.
+- Incoming ClipData text is accepted with its suggested filename. File → Save launches ACTION_CREATE_DOCUMENT and writes exact UTF-8 text through the content resolver.
+- PDF tests clip annotation spans to exact selected text, paginate the native text layout, check rendered highlight color pixels, and verify application/pdf provider MIME. The same page drawing code feeds Android PdfDocument canvases. Android PdfDocument’s file writer is not implemented by this Robolectric version; actual PDF serialization and installed share targets remain device checks.
 - Standard native selection toolbar is enabled and its Copy action writes the selected text to Android’s clipboard.
 - Search is inline in a separate Search ribbon, with tests asserting that opening it creates no dialog, File has no search panel, and search color controls are absent. Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing.
 - YAML tests cover comments, quoted scalars, block content, indentation, aliases, custom tags, multiple documents, invalid input and idempotence. Inline-commented flow collections retain flow layout to preserve their comments.
@@ -28,7 +30,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752002`; minimum Android API 2
 Release SHA-256:
 
 ```
-568c30301e77838505138db0017c3d67196f5544b39ddb7120c2c493caab8c22
+749508c24ea48882a4cdc88971465cd9ec26f52085390a8bb91dc890daaa0a42
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.
