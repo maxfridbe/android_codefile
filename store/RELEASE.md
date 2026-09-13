@@ -6,6 +6,12 @@ Target: Google Play unless the owner selects another store. No store upload or p
 
 Run `scripts/release-store.sh` using the existing private signing material. It creates a signed APK, signed Android App Bundle and R8 mapping file in output/codefile. Preserve the signing key and mappings privately. Play App Signing enrollment/upload-key configuration is an owner action; do not replace the installed-app signing key without planning the distribution consequences.
 
+## Reproducible verification
+
+The release script also verifies APK/AAB signatures against the existing public certificate fingerprint, package/version/SDK metadata, disabled debugging/backup, expected permissions and official bundle structure. It saves a verification report beside the artifacts. This gate deliberately rejects temporary CI signing keys.
+
+Install official [bundletool 1.18.3](https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar) and set `BUNDLETOOL_JAR` to its path (default `/tmp/codefile-bundletool.jar`). The verifier pins SHA-256 `a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29`. Java/keytool/jarsigner and the builder container must be available. Run `python3 scripts/verify-release.py` to recheck existing artifacts without rebuilding.
+
 ## Code and packaging
 
 - Package remains com.TechHurts.CodeFile; version names follow vYY.MMDD.### with monotonically increasing numeric version codes.
@@ -24,7 +30,7 @@ Run `scripts/release-store.sh` using the existing private signing material. It c
 - Complete content rating, target audience, countries/pricing, developer verification, app access and any Play testing requirements applicable to the account.
 - Capture genuine release screenshots on representative phone/tablet/fold devices. Native test renders in app/build are development evidence, not a substitute for installed-release screenshots.
 - Run the signed release on API 24 and API 36, including gesture navigation, keyboard, rotation/fold posture, incoming shares, file Save, PDF serialization and API analysis. No physical device was attached during preparation.
-- Run scripts/benchmark-startup.sh on a representative device, record before/after cold-start timings and inspect startup timing fields in Support logs. Structural optimizations are implemented; no device speedup percentage is claimed.
+- Run scripts/benchmark-startup.sh on a representative device, record before/after process-cold launch timings (CSV, device metadata and summaries are saved under output/benchmarks) and inspect startup timing fields in Support logs. Structural optimizations are implemented; no device speedup percentage is claimed.
 - Upload the AAB to an internal test track, resolve Play pre-launch/device/policy feedback, then approve production publishing separately.
 
 ## Primary requirement references (checked September 13, 2026)

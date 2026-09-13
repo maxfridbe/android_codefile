@@ -50,3 +50,10 @@ The installed `android-dev` skill's Java guidance informed the review. Ribbon ge
 No physical Android device was attached. Actual Galaxy Z Fold posture changes, installed document/share providers, live API services, and TalkBack remain device integration checks. Robolectric tests run against debug classes; release validation covers packaging, shrinking and signing rather than execution on a device.
 
 Reproduce with the README build/audit commands. Generated reports/APKs and private signing material are excluded from Git.
+
+## Release tooling follow-up — September 13, 2026
+
+- `scripts/verify-release.py` passes against signed v26.0913.013 APK/AAB: pinned public signing identity, official bundletool validation, matching package/version/SDK metadata, non-debuggable release, disabled bundle backup and expected permissions. Verification transcript is exported beside the artifacts. Missing bundletool fails closed.
+- `scripts/release-store.sh` now requires this verification before reporting success. No application code or artifact bytes changed in this follow-up.
+- Startup benchmark exports device/version information, raw launch output, CSV and median/min/max. A temporary fake adb verified successful-launch aggregation and failed-launch rejection; these are script tests, not device measurements.
+- Shell syntax, Python compilation and git whitespace checks pass. No attached Android device or KVM device is available; actual release/device performance checks remain pending.
