@@ -32,6 +32,52 @@ public class PdfShareTest {
   }
 
   @Test
+  public void pdfCapturesSyntaxThemeAndSourceReferencesWithExactSelection() throws Exception {
+    LineSelectionEditor editor = new LineSelectionEditor(RuntimeEnvironment.getApplication());
+    editor.setText("int value = 42;\n");
+    io.github.rosemoe.sora.widget.schemes.EditorColorScheme colors = editor.getColorScheme();
+    colors.setColor(
+        io.github.rosemoe.sora.widget.schemes.EditorColorScheme.WHOLE_BACKGROUND, 0xff101820);
+    colors.setColor(io.github.rosemoe.sora.widget.schemes.EditorColorScheme.KEYWORD, 0xff88ddff);
+    io.github.rosemoe.sora.lang.styling.MappedSpans.Builder builder =
+        new io.github.rosemoe.sora.lang.styling.MappedSpans.Builder();
+    builder.addIfNeeded(
+        0,
+        0,
+        io.github.rosemoe.sora.lang.styling.TextStyle.makeStyle(
+            io.github.rosemoe.sora.widget.schemes.EditorColorScheme.KEYWORD, 0, true, true, false));
+    builder.addIfNeeded(0, 3, io.github.rosemoe.sora.widget.schemes.EditorColorScheme.TEXT_NORMAL);
+    editor.setStyles(new io.github.rosemoe.sora.lang.styling.Styles(builder.build()));
+    TextHighlights marks = new TextHighlights();
+    marks.apply(4, 9, 0x70ff66bb);
+    PdfAppearance appearance =
+        PdfAppearance.capture(editor, 1, 9, marks.ranges(), new String[] {"~8", "9"}, 1.6f);
+    assertEquals("nt value", appearance.text.toString());
+    android.text.style.ForegroundColorSpan[] spans =
+        appearance.text.getSpans(0, 2, android.text.style.ForegroundColorSpan.class);
+    assertEquals(0xff88ddff, spans[0].getForegroundColor());
+    assertEquals(0, appearance.text.getSpanStart(spans[0]));
+    assertEquals(2, appearance.text.getSpanEnd(spans[0]));
+    assertEquals(
+        android.graphics.Typeface.BOLD_ITALIC,
+        appearance.text.getSpans(0, 2, android.text.style.StyleSpan.class)[0].getStyle());
+    assertEquals("~8", appearance.sourceLabels[0]);
+    assertEquals(1.6f, appearance.spacing, .01f);
+    assertEquals(1, appearance.text.getSpans(0, 8, BackgroundColorSpan.class).length);
+    PdfShare.Pages pages =
+        new PdfShare.Pages(
+            "syntax.java", editor.getText().toString(), 1, 9, Typeface.MONOSPACE, appearance);
+    android.graphics.Bitmap bitmap =
+        android.graphics.Bitmap.createBitmap(595, 842, android.graphics.Bitmap.Config.ARGB_8888);
+    pages.draw(new android.graphics.Canvas(bitmap), 0);
+    assertEquals(0xff101820, bitmap.getPixel(0, 0));
+    try (FileOutputStream out = new FileOutputStream("build/native-pdf-syntax.png")) {
+      bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+    }
+    editor.release();
+  }
+
+  @Test
   public void nativePdfPagesPreserveHighlightsAndPaginate() throws Exception {
     String source = "    int highlighted = 42;\n".repeat(120);
     TextHighlights marks = new TextHighlights();

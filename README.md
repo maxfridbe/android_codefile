@@ -1,6 +1,6 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0913.007`
+`com.TechHurts.CodeFile` · `v26.0913.008`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
@@ -26,9 +26,9 @@ The Navigation ribbon exposes Symbols, Definition, References, Info, Table and L
 
 Press a visible line number and slowly drag to select complete lines in either direction; dragging near the edge scrolls the document. Releasing opens a selection ribbon with Share, Copy, Export and Ask LLM. The analysis dialog previews the selected snippet before sending it.
 
-Both the standard text-selection toolbar and the line-selection ribbon offer a colored highlight swatch. Tap it for a native popup containing Android RGB sliders, a hex field, Apply highlight and Clear colors. Highlight annotations follow exact selected ranges across wrapping, panning and zoom; overlapping colors replace only the overlapping range. Clear colors is also directly available when the selection intersects a highlighted range. They remain with each open document during the session and do not alter exported source. Original and formatted previews keep separate annotations; regenerating a changed preview clears its old annotations. The native line-number gutter pans with unwrapped text and returns when panning back.
+Both the standard text-selection toolbar and the line-selection ribbon offer a colored highlight swatch. Tap it for a native popup containing Android RGB sliders, a hex field, Apply highlight and Clear colors. Highlight annotations follow exact selected ranges across wrapping, panning and zoom; overlapping colors replace only the overlapping range. Clear colors is also directly available when the selection intersects a highlighted range. They remain with each open document during the session and do not alter exported source. Original and formatted previews keep separate annotations; regenerating a changed preview clears its old annotations. Source references are drawn inside the native line-number gutter, so panning does not resize the editor. Both columns pan with unwrapped text and return at the left edge. Horizontal drags starting over numbers hand off to panning; slow vertical drags still select lines. Horizontal gestures cannot collapse the ribbon, and horizontal edge stretch is cleared to allow immediate reversal.
 
-File’s Sharing group and the selection ribbon include **Share PDF**. PDF export uses Android’s native PDF canvas, keeps exact selected text and highlight colors, wraps long lines, and includes displayed line numbers. With no text selected it exports the full displayed document. A read-only content URI is shared through Android’s chooser. PDF export supports up to 1 MiB of text and 500 pages.
+File’s Sharing group and the selection ribbon include **Share PDF**. PDF export uses Android’s native PDF canvas and preserves exact selected text, syntax colors and emphasis, theme background, font, line spacing, tab stops, applied highlights, the line-number setting, and original-source references in formatted previews. It reflows to paper width with a 10pt font and pagination; cursor/selection handles, editor guides, and temporary search matches are interactive UI and are omitted. With no text selected it exports the full displayed document. A read-only content URI is shared through Android’s chooser. PDF export supports up to 1 MiB of text and 500 pages.
 
 ## OpenRouter and local APIs
 

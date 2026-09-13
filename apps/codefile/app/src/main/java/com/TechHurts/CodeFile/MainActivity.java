@@ -44,7 +44,6 @@ public class MainActivity extends Activity {
   private final ArrayList<Document> documents = new ArrayList<>();
   private Document current;
   private CodeEditor editor;
-  private SourceGutter gutter;
   private LinearLayout root, documentRow, controls, reader;
   private FoldWorkspace workspace;
   private CollapsingRibbon ribbonBody;
@@ -514,8 +513,6 @@ public class MainActivity extends Activity {
     ((LineSelectionEditor) editor)
         .setOnRibbonDrag(delta -> ribbonScroll(delta, ScrollEvent.CAUSE_USER_DRAG));
     editor.setContentDescription("Native source code viewer");
-    gutter = new SourceGutter();
-    code.addView(gutter, new LinearLayout.LayoutParams(dp(54), -1));
     code.addView(editor, new LinearLayout.LayoutParams(0, -1, 1));
     reader.addView(code, new LinearLayout.LayoutParams(-1, 0, 1));
     status = label("", 10, muted);
@@ -539,7 +536,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.007")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.008")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -570,8 +567,7 @@ public class MainActivity extends Activity {
     editor.subscribeEvent(
         ScrollEvent.class,
         (event, unsubscribe) -> {
-          gutter.invalidate();
-          panSourceGutter(event.getEndX());
+          editor.invalidate();
 
           if (event.getCause() == ScrollEvent.CAUSE_SCALE_TEXT)
             prefs
@@ -621,6 +617,11 @@ public class MainActivity extends Activity {
     target.setHorizontalScrollBarEnabled(true);
     target.setVerticalScrollBarEnabled(true);
     target.setLineNumberEnabled(prefs.getBoolean("numbers", true));
+    ((LineSelectionEditor) target)
+        .setSourceLabels(
+            current != null && current.formatted && prefs.getBoolean("source", true)
+                ? current.labels
+                : null);
     target.setPinLineNumber(false);
     target.setTabWidth(prefs.getInt("tab", 4));
     target.setLineSpacingMultiplier(prefs.getFloat("spacing", 1.4f));
@@ -726,9 +727,6 @@ public class MainActivity extends Activity {
       editor.setEditorLanguage(null);
     }
     configureEditor(editor);
-    panSourceGutter(0);
-    gutter.setVisibility(
-        current.formatted && prefs.getBoolean("source", true) ? View.VISIBLE : View.GONE);
     title.setText(
         current.language
             + " · "
@@ -739,17 +737,6 @@ public class MainActivity extends Activity {
                 : "original · read only"));
     updateStatus();
     startLanguageService();
-  }
-
-  private void panSourceGutter(int offset) {
-    if (current == null || !current.formatted || !prefs.getBoolean("source", true)) return;
-    int width = Math.max(0, dp(54) - Math.max(0, offset));
-    ViewGroup.LayoutParams layout = gutter.getLayoutParams();
-    if (layout.width != width) {
-      layout.width = width;
-      gutter.setLayoutParams(layout);
-    }
-    gutter.setVisibility(width == 0 ? View.GONE : View.VISIBLE);
   }
 
   private void updateStatus() {
@@ -776,36 +763,7 @@ public class MainActivity extends Activity {
             + "   ·   "
             + (editor.getCursor().getRight() - editor.getCursor().getLeft())
             + " selected");
-    gutter.invalidate();
-  }
-
-  private class SourceGutter extends View {
-    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    SourceGutter() {
-      super(MainActivity.this);
-      setContentDescription("Original source line references");
-    }
-
-    protected void onDraw(Canvas canvas) {
-      super.onDraw(canvas);
-      if (current == null || current.labels == null) return;
-      paint.setTypeface(codeFont);
-      paint.setTextSize(dp(10));
-      paint.setColor(muted);
-      int first = editor.getFirstVisibleRow(),
-          last =
-              Math.min(
-                  editor.getLayout().getRowCount() - 1,
-                  first + getHeight() / Math.max(1, editor.getRowHeight()) + 2);
-      for (int r = first; r <= last; r++) {
-        int line = editor.getLayout().getLineNumberForRow(r);
-        if (r > 0 && editor.getLayout().getLineNumberForRow(r - 1) == line) continue;
-        if (line < current.labels.length)
-          canvas.drawText(
-              current.labels[line], dp(2), editor.getRowBaseline(r) - editor.getOffsetY(), paint);
-      }
-    }
+    editor.invalidate();
   }
 
   private EditText input(LinearLayout parent, String hint, String value, boolean multiline) {
@@ -1094,7 +1052,20 @@ public class MainActivity extends Activity {
     int end = editor.getCursor().isSelected() ? editor.getCursor().getRight() : source.length();
     TextHighlights marks =
         current.formatted ? current.previewHighlights : current.originalHighlights;
-    List<TextHighlights.Range> snapshot = new ArrayList<>(marks.ranges());
+    PdfAppearance snapshot;
+    try {
+      snapshot =
+          PdfAppearance.capture(
+              editor,
+              start,
+              end,
+              marks.ranges(),
+              current.formatted && prefs.getBoolean("source", true) ? current.labels : null,
+              prefs.getFloat("spacing", 1.4f));
+    } catch (Exception failure) {
+      error("PDF: " + message(failure));
+      return;
+    }
     Typeface font = codeFont;
     io.execute(
         () -> {
@@ -1274,7 +1245,7 @@ public class MainActivity extends Activity {
     int fitted = Math.max(8, Math.min(40, (int) Math.floor(size * ratio)));
     editor.setTextSize(fitted);
     prefs.edit().putInt("size", fitted).apply();
-    gutter.invalidate();
+    editor.invalidate();
   }
 
   private void zoom(int amount) {
@@ -1282,7 +1253,7 @@ public class MainActivity extends Activity {
     int value = Math.max(8, Math.min(40, Math.round(size) + amount));
     editor.setTextSize(value);
     prefs.edit().putInt("size", value).apply();
-    gutter.invalidate();
+    editor.invalidate();
   }
 
   private CheckBox check(LinearLayout parent, String title, boolean value) {
@@ -1399,7 +1370,7 @@ public class MainActivity extends Activity {
           .setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg));
       recolor(settingsDialog.getWindow().getDecorView());
     }
-    gutter.invalidate();
+    editor.invalidate();
   }
 
   private LinearLayout settingsSection(LinearLayout page, String name, int icon, boolean open) {

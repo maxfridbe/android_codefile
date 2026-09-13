@@ -9,6 +9,25 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 /** Gutter gestures select complete source lines immediately; no long-press timeout is involved. */
 final class LineSelectionEditor extends CodeEditor {
   TextHighlights highlights;
+  String[] sourceLabels;
+  private MotionEvent gutterDown;
+  private int gestureAxis;
+
+  void setSourceLabels(String[] labels) {
+    if (sourceLabels == labels) return;
+    sourceLabels = labels;
+    createLayout();
+    invalidate();
+  }
+
+  float sourceWidth() {
+    return sourceLabels == null ? 0 : 54 * getResources().getDisplayMetrics().density;
+  }
+
+  @Override
+  public float measureLineNumber() {
+    return super.measureLineNumber() + sourceWidth();
+  }
 
   @Override
   protected io.github.rosemoe.sora.widget.EditorRenderer onCreateRenderer() {
@@ -35,6 +54,7 @@ final class LineSelectionEditor extends CodeEditor {
       touchX = event.getRawX();
       touchY = lastTouchY = event.getRawY();
       ribbonGesture = false;
+      gestureAxis = 0;
       multitouch = false;
     } else if (action == MotionEvent.ACTION_POINTER_DOWN) {
       multitouch = true;
@@ -44,13 +64,17 @@ final class LineSelectionEditor extends CodeEditor {
         && !dragging
         && !getEventHandler().hasAnyHeldHandle()) {
       float dy = event.getRawY() - touchY, dx = event.getRawX() - touchX;
-      if (!ribbonGesture
-          && Math.abs(dy) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()
-          && Math.abs(dy) > Math.abs(dx)) ribbonGesture = true;
+      int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+      if (gestureAxis == 0 && Math.max(Math.abs(dx), Math.abs(dy)) > slop)
+        gestureAxis = Math.abs(dx) > Math.abs(dy) ? 1 : 2;
+      ribbonGesture = gestureAxis == 2;
       if (ribbonGesture) ribbonDrag.accept(Math.round(lastTouchY - event.getRawY()));
       lastTouchY = event.getRawY();
     }
-    return super.dispatchTouchEvent(event);
+    getHorizontalEdgeEffect().finish();
+    boolean handled = super.dispatchTouchEvent(event);
+    getHorizontalEdgeEffect().finish();
+    return handled;
   }
 
   private int anchor, first = -1, last = -1;
@@ -60,6 +84,7 @@ final class LineSelectionEditor extends CodeEditor {
 
   LineSelectionEditor(Context context) {
     super(context);
+    getProps().overScrollEnabled = false;
   }
 
   void setOnLineSelectionFinished(Runnable callback) {
@@ -90,6 +115,8 @@ final class LineSelectionEditor extends CodeEditor {
       float visibleGutter = measureTextRegionOffset() - getOffsetX();
       dragging = isLineNumberEnabled() && event.getX() >= 0 && event.getX() < visibleGutter;
       if (!dragging) return super.onTouchEvent(event);
+      recycleGutterDown();
+      gutterDown = MotionEvent.obtain(event);
       getScroller().forceFinished(true);
       pointerY = event.getY();
       anchor = lineAt(pointerY);
@@ -99,6 +126,7 @@ final class LineSelectionEditor extends CodeEditor {
       return true;
     }
     if (!dragging) return super.onTouchEvent(event);
+    if (shouldPan(event)) return handOffGutter(event);
     if (action == MotionEvent.ACTION_MOVE) {
       pointerY = event.getY();
       selectThrough(lineAt(pointerY));
@@ -106,12 +134,39 @@ final class LineSelectionEditor extends CodeEditor {
     }
     if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
       removeCallbacks(edgeScroll);
+      recycleGutterDown();
       dragging = false;
       getParent().requestDisallowInterceptTouchEvent(false);
       if (action == MotionEvent.ACTION_UP) selectionFinished.run();
       return true;
     }
     return true;
+  }
+
+  private boolean shouldPan(MotionEvent event) {
+    if (gutterDown == null) return false;
+    if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN) return true;
+    float dx = Math.abs(event.getX() - gutterDown.getX());
+    float dy = Math.abs(event.getY() - gutterDown.getY());
+    return event.getActionMasked() == MotionEvent.ACTION_MOVE
+        && dx > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()
+        && dx > dy;
+  }
+
+  private boolean handOffGutter(MotionEvent event) {
+    dragging = false;
+    gestureAxis = 1;
+    removeCallbacks(edgeScroll);
+    clearLineSelection();
+    setSelection(getCursor().getLeftLine(), getCursor().getLeftColumn());
+    super.onTouchEvent(gutterDown);
+    recycleGutterDown();
+    return super.onTouchEvent(event);
+  }
+
+  private void recycleGutterDown() {
+    if (gutterDown != null) gutterDown.recycle();
+    gutterDown = null;
   }
 
   private int lineAt(float y) {
@@ -154,6 +209,7 @@ final class LineSelectionEditor extends CodeEditor {
 
   protected void onDetachedFromWindow() {
     removeCallbacks(edgeScroll);
+    recycleGutterDown();
     dragging = false;
     super.onDetachedFromWindow();
   }

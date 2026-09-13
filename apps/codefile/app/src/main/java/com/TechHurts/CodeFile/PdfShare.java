@@ -32,6 +32,8 @@ final class PdfShare {
     private final int[] numbers;
     private final List<Integer> starts = new ArrayList<>();
     private final String name;
+    private final PdfAppearance appearance;
+    private final float textLeft;
 
     Pages(
         String name,
@@ -41,18 +43,32 @@ final class PdfShare {
         List<TextHighlights.Range> marks,
         Typeface font)
         throws IOException {
+      this(name, source, start, end, font, new PdfAppearance(annotated(source, start, end, marks)));
+    }
+
+    Pages(String name, String source, int start, int end, Typeface font, PdfAppearance appearance)
+        throws IOException {
       if (end - start > 1024 * 1024)
         throw new IOException("Select up to 1 MiB of text for PDF sharing");
       this.name = name;
-      SpannableString text = annotated(source, start, end, marks);
+      this.appearance = appearance;
+      textLeft = appearance.numbers ? (appearance.sourceLabels == null ? 76 : 116) : 36;
+      SpannableString text = appearance.text;
       TextPaint paint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-      paint.setColor(Color.BLACK);
+      paint.setColor(appearance.foreground);
       paint.setTypeface(font);
       paint.setTextSize(10);
+      int tab = Math.max(1, Math.round(paint.measureText(" ") * appearance.tabWidth));
+      for (int x = tab; x < 524; x += tab)
+        text.setSpan(
+            new android.text.style.TabStopSpan.Standard(x),
+            0,
+            text.length(),
+            Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
       layout =
-          StaticLayout.Builder.obtain(text, 0, text.length(), paint, 483)
+          StaticLayout.Builder.obtain(text, 0, text.length(), paint, (int) (559 - textLeft))
               .setIncludePad(false)
-              .setLineSpacing(3, 1)
+              .setLineSpacing(0, appearance.spacing)
               .build();
       numbers = new int[layout.getLineCount()];
       int sourceLine = 1;
@@ -84,23 +100,30 @@ final class PdfShare {
       int first = starts.get(index),
           end = index + 1 < starts.size() ? starts.get(index + 1) : layout.getLineCount();
       int top = layout.getLineTop(first);
-      canvas.drawColor(Color.WHITE);
+      canvas.drawColor(appearance.background);
       Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
-      label.setColor(0xff505050);
+      label.setColor(appearance.gutter);
       label.setTextSize(10);
       canvas.drawText(name.length() > 80 ? name.substring(0, 80) : name, 36, 32, label);
       canvas.drawText("CodeFile · " + (index + 1), 36, 814, label);
       label.setTypeface(Typeface.MONOSPACE);
       label.setTextSize(8);
-      for (int line = first; line < end; line++)
-        if (numbers[line] > 0)
-          canvas.drawText(
-              Integer.toString(numbers[line]), 36, 56 + layout.getLineBaseline(line) - top, label);
+      if (appearance.numbers)
+        for (int line = first; line < end; line++) drawNumber(canvas, label, line, top);
       canvas.save();
-      canvas.clipRect(76, 56, 559, 56 + layout.getLineBottom(end - 1) - top);
-      canvas.translate(76, 56 - top);
+      canvas.clipRect(textLeft, 56, 559, 56 + layout.getLineBottom(end - 1) - top);
+      canvas.translate(textLeft, 56 - top);
       layout.draw(canvas);
       canvas.restore();
+    }
+
+    private void drawNumber(Canvas canvas, Paint label, int row, int top) {
+      int number = numbers[row];
+      if (number <= 0) return;
+      float y = 56 + layout.getLineBaseline(row) - top;
+      canvas.drawText(Integer.toString(number), textLeft - 40, y, label);
+      if (appearance.sourceLabels != null && number <= appearance.sourceLabels.length)
+        canvas.drawText(appearance.sourceLabels[number - 1], 36, y, label);
     }
   }
 
@@ -110,10 +133,10 @@ final class PdfShare {
       String source,
       int start,
       int end,
-      List<TextHighlights.Range> marks,
+      PdfAppearance appearance,
       Typeface font)
       throws IOException {
-    Pages pages = new Pages(name, source, start, end, marks, font);
+    Pages pages = new Pages(name, source, start, end, font, appearance);
     File directory = new File(cache, "shares");
     if (!directory.isDirectory() && !directory.mkdirs())
       throw new IOException("Cannot create PDF share directory");

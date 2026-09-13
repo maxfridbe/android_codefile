@@ -11,6 +11,8 @@ import java.util.List;
 /** Uses Sora's native bidi-aware range painter before syntax glyphs are drawn. */
 final class HighlightRenderer extends EditorRenderer {
   private final LineSelectionEditor owner;
+  private final android.graphics.Paint sourcePaint =
+      new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
 
   HighlightRenderer(LineSelectionEditor owner) {
     super(owner);
@@ -27,6 +29,23 @@ final class HighlightRenderer extends EditorRenderer {
       MutableInt first) {
     if (owner.highlights != null) drawHighlights(canvas);
     super.drawRows(canvas, offset, numbers, cursors, current, first);
+  }
+
+  @Override
+  protected void drawLineNumber(
+      Canvas canvas, int line, int row, float offset, float width, int color) {
+    float source = owner.sourceWidth();
+    if (source > 0 && line < owner.sourceLabels.length) {
+      sourcePaint.setTypeface(owner.getTypefaceLineNumber());
+      sourcePaint.setTextSize(10 * owner.getResources().getDisplayMetrics().density);
+      sourcePaint.setColor(color);
+      canvas.drawText(
+          owner.sourceLabels[line],
+          offset + 2 * owner.getResources().getDisplayMetrics().density,
+          owner.getRowBaseline(row) - owner.getOffsetY(),
+          sourcePaint);
+    }
+    super.drawLineNumber(canvas, line, row, offset + source, width - source, color);
   }
 
   private void drawHighlights(Canvas canvas) {
