@@ -89,6 +89,7 @@ final class RibbonPage extends HorizontalScrollView {
     String label = String.valueOf(button.getContentDescription());
     if (label.equals("Service info")) return "Service";
     if (label.equals("Go to line")) return "Line";
+    if (label.equals("View JSON tree")) return "Tree";
     return label;
   }
 

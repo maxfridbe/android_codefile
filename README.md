@@ -1,6 +1,6 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0913.011`
+`com.TechHurts.CodeFile` · `v26.0913.012`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
@@ -19,6 +19,12 @@ CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **
 - Tabbed Settings pages with compact value rows and a font preview with immediate theme application; changing a theme keeps the same editor and document. Fourteen light/dark palettes plus system matching: Carbon, Midnight, Dracula, Forest, Paper, High contrast, Nord dark/light, Catppuccin Mocha/Latte, Solarized dark/light, and Rosé Pine/Dawn. Theme accents color ribbon borders and code guides. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
 - Document/language/navigation status is consolidated into the horizontally scrollable bottom status bar. The filename remains above the editor.
 - Support ribbon includes Log .gz, service details, licenses and diagnostics. Native gzip diagnostic-log sharing with `ACTION_SEND`, `application/gzip`, a read-only content provider, and temporary URI permission. Reports omit source, prompts, responses, endpoint URLs, and credentials.
+
+## Markdown and JSON previews
+
+Markdown files expose an **MD** ribbon with **Preview**. Markwon renders headings, emphasis, lists, quotes, links, fenced code, GFM tables, strikethrough and task lists into native Android text spans. Preview follows the theme and uses the selected code font for code blocks. Remote images, embedded HTML and math rendering are not enabled. Preview supports up to 1 MiB of source.
+
+JSON files expose a **JSON** ribbon with **View JSON tree**. Objects and arrays expand/collapse in a native recycled list. Rows show keys, types and values; tapping a scalar opens its full value and JSON path with Copy/Share. Parsing preserves numeric spellings and object entry order, accepts scalar roots and rejects malformed/trailing input. Limits are 2 MiB, 50,000 values and 128 nesting levels. Both previews parse off the UI thread and leave source text unchanged; format tabs follow file switches and language detection.
 
 ## Navigation and LSP
 

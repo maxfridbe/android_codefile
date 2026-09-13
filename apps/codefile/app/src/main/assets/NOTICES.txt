@@ -32,3 +32,8 @@ See textmate/LICENSE-javaparser.txt.
 Guava — Apache License 2.0. https://github.com/google/guava
 Javassist — Apache License 2.0 (tri-license choice). https://github.com/jboss-javassist/javassist
 CodeFile theme palettes and native controls are part of this application's source.
+
+Markwon 4.6.2 — Apache License 2.0. https://github.com/noties/Markwon
+See textmate/LICENSE-markwon.txt.
+CommonMark Java — BSD 2-Clause. https://github.com/commonmark/commonmark-java
+See textmate/LICENSE-commonmark.txt.

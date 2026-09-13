@@ -17,8 +17,8 @@ android {
         targetSdk = 34
         // Injected by build.sh from git (commit count / git describe);
         // the defaults only apply to builds outside the build system.
-        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752011
-        versionName = findProperty("appVersionName") as String? ?: "v26.0913.011"
+        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752012
+        versionName = findProperty("appVersionName") as String? ?: "v26.0913.012"
     }
 
     if (sharedKeystore != null) {
@@ -56,6 +56,10 @@ android {
 }
 
 dependencies {
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-tables:4.6.2")
+    implementation("io.noties.markwon:ext-tasklist:4.6.2")
+    implementation("io.noties.markwon:ext-strikethrough:4.6.2")
     implementation("io.github.Rosemoe.sora-editor:editor:0.23.4")
     implementation("io.github.Rosemoe.sora-editor:language-textmate:0.23.4")
     implementation("androidx.core:core:1.12.0")

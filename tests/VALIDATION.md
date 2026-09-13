@@ -1,9 +1,9 @@
-# Native release validation — v26.0913.011
+# Native release validation — v26.0913.012
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752011`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752012`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 48 JUnit/Robolectric tests: passed, no failures or skips.
+- 53 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
@@ -14,6 +14,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752011`; minimum Android API 2
 - Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
 - Embedded Java service resolves a shadowed local variable to its same-file declaration, initializes without a network endpoint, and provides a labelled lexical fallback for other languages.
 - Office-style ribbon groups use a stable 112dp height, shared caption baselines, outlined primary tiles and two stacked secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
+- MD/JSON ribbon visibility follows file switches. Markdown tests inspect rendered native spans including code and extensions; JSON tests cover nested types, exact large numeric values, strict malformed-input rejection and expand/collapse. Markwon/CommonMark license texts are bundled.
 - App icon opens Settings; Settings is in Support, and Go to line is in Search rather than View/Navigation. Symbol regression filters names case-insensitively, inspects code preview and jumps to the highlighted destination without changing source text.
 - Navigation opens inline with directly visible Symbols, Definition, References, Info and Table actions; opening the tab creates no dialog. Service info is absent from Code and remains in Support.
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
@@ -38,7 +39,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752011`; minimum Android API 2
 Release SHA-256:
 
 ```
-70adc71dd0e46c7ad4721374e8f12526501dfa7d2dca0578221f344c9dc355e7
+abbdd353e9c8cde7023f78bdb317058149142ffb4e638ec17dcdf464e249f7a5
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

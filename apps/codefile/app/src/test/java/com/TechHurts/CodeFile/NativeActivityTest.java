@@ -908,6 +908,36 @@ public class NativeActivityTest {
   }
 
   @Test
+  public void formatRibbonsFollowTheCurrentFile() throws Exception {
+    Intent intent =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TITLE, "README.md")
+            .putExtra(Intent.EXTRA_TEXT, "# Hello");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, intent).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      assertEquals(View.VISIBLE, button(root, "MD").getVisibility());
+      assertEquals(View.GONE, button(root, "JSON").getVisibility());
+      expandTab(root, "MD");
+      assertTrue(button(root, "Preview").isShown());
+      java.lang.reflect.Method add =
+          MainActivity.class.getDeclaredMethod(
+              "addDocument", String.class, String.class, String.class, String.class);
+      add.setAccessible(true);
+      add.invoke(activity, "data.json", "{\"x\":1}", "UTF-8", "");
+      assertEquals(View.GONE, button(root, "MD").getVisibility());
+      assertEquals(View.VISIBLE, button(root, "JSON").getVisibility());
+      expandTab(root, "JSON");
+      assertTrue(button(root, "View JSON tree").isShown());
+      add.invoke(activity, "plain.txt", "hello", "UTF-8", "");
+      assertEquals(View.GONE, button(root, "MD").getVisibility());
+      assertEquals(View.GONE, button(root, "JSON").getVisibility());
+    }
+  }
+
+  @Test
   public void manualCollapseIgnoresScrollUntilExplicitlyExpanded() throws Exception {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {

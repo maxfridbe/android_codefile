@@ -304,6 +304,8 @@ public class MainActivity extends Activity {
       {"Diagnostics", "About"},
       {},
       {"Browse", "Inspect"},
+      {"Markdown"},
+      {"JSON"},
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
@@ -313,6 +315,8 @@ public class MainActivity extends Activity {
       {{0, 1, 2}, {3, 4, 5}},
       {},
       {{0, 1, 2}, {4, 3}},
+      {{0}},
+      {{0}},
       {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
@@ -410,9 +414,9 @@ public class MainActivity extends Activity {
     logo.setOnClickListener(v -> settings());
     identity.addView(logo, new LinearLayout.LayoutParams(dp(40), dp(40)));
     ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(44), dp(40)));
-    String[] groups = {"File", "Search", "View", "Code", "Navigation", "Support"};
-    int[] pageIndices = {0, 4, 1, 2, 5, 3};
-    int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0318, 0xf0625};
+    String[] groups = {"File", "Search", "View", "Code", "Navigation", "Support", "MD", "JSON"};
+    int[] pageIndices = {0, 4, 1, 2, 5, 3, 6, 7};
+    int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0318, 0xf0625, 0xf0354, 0xf0626};
     ribbonTabButtons.clear();
     for (int i = 0; i < groups.length; i++) {
       final int index = pageIndices[i];
@@ -423,6 +427,7 @@ public class MainActivity extends Activity {
       tabButton.setOnClickListener(v -> tapRibbon(index));
       tabButton.setColors(fg, muted, accent, panel);
       tabButton.setTag(index);
+      if (index >= 6) tabButton.setVisibility(View.GONE);
       tabButton.setSelected(index == ribbonTab);
       ribbonTabButtons.add(tabButton);
       LinearLayout.LayoutParams tabLayout =
@@ -548,7 +553,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.011")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.012")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -564,6 +569,12 @@ public class MainActivity extends Activity {
     ribbonBody.addView(searchPage, new LinearLayout.LayoutParams(-1, -2));
     searchPage.setVisibility(ribbonTab == 4 ? View.VISIBLE : View.GONE);
     buildNavigationRibbon();
+    LinearLayout markdown = row();
+    markdown.addView(button("Preview", 0xf06d0, this::previewMarkdown));
+    ribbonPage(markdown);
+    LinearLayout json = row();
+    json.addView(button("View JSON tree", 0xf0626, this::viewJsonTree));
+    ribbonPage(json);
     highlightSwatches.clear();
     clearColorButtons.clear();
     EditorTextActionWindow selectionToolbar = editor.getComponent(EditorTextActionWindow.class);
@@ -749,6 +760,7 @@ public class MainActivity extends Activity {
       editor.setEditorLanguage(null);
     }
     configureEditor(editor);
+    updateFormatTabs();
     title.setText(
         current.language
             + " · "
@@ -1140,6 +1152,86 @@ public class MainActivity extends Activity {
     editor.ensurePositionVisible(
         line, Math.max(0, Math.min(column, editor.getText().getColumnCount(line))));
     updateStatus();
+  }
+
+  private void updateFormatTabs() {
+    String language = current.language.toLowerCase(Locale.ROOT);
+    String ext = TextFormats.extension(current.name);
+    boolean markdown =
+        language.startsWith("markdown")
+            || Arrays.asList("md", "markdown", "mdown", "mkd").contains(ext);
+    boolean json = language.equals("json") || ext.equals("json") || ext.equals("jsonld");
+    for (RibbonTab tab : ribbonTabButtons) {
+      int index = (Integer) tab.getTag();
+      if (index == 6) tab.setVisibility(markdown ? View.VISIBLE : View.GONE);
+      if (index == 7) tab.setVisibility(json ? View.VISIBLE : View.GONE);
+    }
+    if ((ribbonTab == 6 && !markdown) || (ribbonTab == 7 && !json) || ribbonTab == 8)
+      selectRibbon(0);
+    ribbonBody.invalidate();
+  }
+
+  private void previewMarkdown() {
+    if (current == null) return;
+    Document doc = current;
+    String source = doc.text();
+    if (source.length() > 1024 * 1024) {
+      toast("Markdown preview supports files up to 1 MiB");
+      return;
+    }
+    AppTheme theme = selectedTheme();
+    io.noties.markwon.Markwon renderer = MarkdownPreview.renderer(this, theme, codeFont);
+    io.execute(
+        () -> {
+          try {
+            android.text.Spanned rendered = renderer.toMarkdown(source);
+            ui(
+                () -> {
+                  if (current != doc) return;
+                  TextView view = MarkdownPreview.view(this, theme);
+                  renderer.setParsedMarkdown(view, rendered);
+                  dialog("Markdown · " + doc.name, previewFrame(scrolling(view)));
+                });
+          } catch (Exception failure) {
+            error("Markdown: " + message(failure));
+          }
+        });
+  }
+
+  private void viewJsonTree() {
+    if (current == null) return;
+    Document doc = current;
+    String source = doc.text();
+    AppTheme theme = selectedTheme();
+    io.execute(
+        () -> {
+          try {
+            JsonTree.Node tree = JsonTree.parse(source);
+            ui(
+                () -> {
+                  if (current != doc) return;
+                  JsonTreeView view =
+                      new JsonTreeView(
+                          this,
+                          tree,
+                          theme,
+                          this::iconText,
+                          node -> showText(node.path + " · " + node.type, node.value));
+                  dialog("JSON · " + doc.name, previewFrame(view));
+                });
+          } catch (Exception failure) {
+            error("JSON: " + message(failure));
+          }
+        });
+  }
+
+  private View previewFrame(View view) {
+    LinearLayout frame = column();
+    frame.addView(
+        view,
+        new LinearLayout.LayoutParams(
+            -1, Math.min(dp(600), Math.max(dp(240), root.getHeight() * 2 / 3))));
+    return frame;
   }
 
   private void format() {
@@ -1790,7 +1882,7 @@ public class MainActivity extends Activity {
   }
 
   private void showSelectionRibbon() {
-    if (ribbonPages.size() == 6) {
+    if (ribbonPages.size() == 8) {
       LinearLayout selection = row();
       selection.addView(button("Share", 0xf0497, this::shareCurrent));
       selection.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
@@ -1814,11 +1906,11 @@ public class MainActivity extends Activity {
       caption.setPadding(0, 0, 0, 0);
       caption.setGravity(Gravity.CENTER);
       colorPanel.addView(caption, new LinearLayout.LayoutParams(dp(80), dp(20)));
-      ((RibbonPage) ribbonPages.get(6)).prependPanel(colorPanel, 80);
+      ((RibbonPage) ribbonPages.get(8)).prependPanel(colorPanel, 80);
     }
-    ribbonTab = 6;
+    ribbonTab = 8;
     for (int i = 0; i < ribbonPages.size(); i++)
-      ribbonPages.get(i).setVisibility(i == 6 ? View.VISIBLE : View.GONE);
+      ribbonPages.get(i).setVisibility(i == 8 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
     setRibbonCollapsed(ribbonManuallyCollapsed);
     updateColorActions();
