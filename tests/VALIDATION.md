@@ -1,6 +1,6 @@
-# Native release validation — v26.0913.005
+# Native release validation — v26.0913.006
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752005`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752006`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
 - 43 JUnit/Robolectric tests: passed, no failures or skips.
@@ -12,6 +12,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752005`; minimum Android API 2
 - Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
 - Embedded Java service resolves a shadowed local variable to its same-file declaration, initializes without a network endpoint, and provides a labelled lexical fallback for other languages.
 - Office-style ribbon groups use a stable 112dp height, shared caption baselines, outlined primary tiles and two stacked secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
+- Navigation opens inline with directly visible Symbols, Definition, References, Info, Table and Line actions; opening the tab creates no dialog. Service info is absent from Code and remains in Support.
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
@@ -31,7 +32,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752005`; minimum Android API 2
 Release SHA-256:
 
 ```
-d839bc838bf4a488361a6ca71412214eae1dc6ab9af154a10c7438f6923a3b6c
+61ecbe53205321c656eda01532fa390531114445cece2fbd9ae658fa6bca902b
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

@@ -301,17 +301,19 @@ public class MainActivity extends Activity {
     String[][] captions = {
       {"Files", "Sharing"},
       {"Reading", "Zoom"},
-      {"Source", "Navigation"},
+      {"Source", "Comparison"},
       {"Diagnostics", "About"},
       {},
+      {"Browse", "Inspect"},
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
       {{0, 1, 5}, {4, 2, 3}},
       {{0, 1, 2}, {5, 4, 3}},
-      {{1, 0, 2}, {3, 4, 5}},
+      {{1, 0, 2}, {3}},
       {{0, 1, 2}, {3, 4, 5}},
       {},
+      {{0, 1, 2}, {4, 3, 5}},
       {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
@@ -403,9 +405,9 @@ public class MainActivity extends Activity {
     logo.setContentDescription("CodeFile logo");
     identity.addView(logo, new LinearLayout.LayoutParams(dp(40), dp(40)));
     ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(44), dp(40)));
-    String[] groups = {"File", "Search", "View", "Code", "Support"};
-    int[] pageIndices = {0, 4, 1, 2, 3};
-    int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0625};
+    String[] groups = {"File", "Search", "View", "Code", "Navigation", "Support"};
+    int[] pageIndices = {0, 4, 1, 2, 5, 3};
+    int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0318, 0xf0625};
     ribbonTabButtons.clear();
     for (int i = 0; i < groups.length; i++) {
       final int index = pageIndices[i];
@@ -419,7 +421,8 @@ public class MainActivity extends Activity {
       tabButton.setSelected(index == ribbonTab);
       ribbonTabButtons.add(tabButton);
       LinearLayout.LayoutParams tabLayout =
-          new LinearLayout.LayoutParams(dp(i == 4 ? 84 : i == 1 ? 78 : 66), dp(40));
+          new LinearLayout.LayoutParams(
+              dp(index == 5 ? 112 : index == 3 ? 84 : index == 4 ? 78 : 66), dp(40));
       tabLayout.setMargins(dp(1), dp(2), dp(1), 0);
       ribbonTabs.addView(tabButton, tabLayout);
       if (i == 3) ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
@@ -506,12 +509,6 @@ public class MainActivity extends Activity {
     nav.addView(button("Format", 0xf0278, this::format));
     nav.addView(button("Language", 0xf0174, this::chooseLanguage));
 
-    nav.addView(
-        button(
-            "Service info",
-            0xf0318,
-            () -> showText("On-device language service", navStatus.getText().toString())));
-    nav.addView(button("Navigation", 0xf0318, this::navigationPanel));
     nav.addView(button("Diff", 0xf08aa, this::diff));
     ribbonPage(nav);
     setRibbonCollapsed(ribbonCollapsed);
@@ -548,7 +545,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.005")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.006")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -559,6 +556,7 @@ public class MainActivity extends Activity {
     ribbonPages.add(searchPage);
     ribbonBody.addView(searchPage, new LinearLayout.LayoutParams(-1, -2));
     searchPage.setVisibility(ribbonTab == 4 ? View.VISIBLE : View.GONE);
+    buildNavigationRibbon();
     highlightSwatches.clear();
     clearColorButtons.clear();
     EditorTextActionWindow selectionToolbar = editor.getComponent(EditorTextActionWindow.class);
@@ -1783,7 +1781,7 @@ public class MainActivity extends Activity {
   }
 
   private void showSelectionRibbon() {
-    if (ribbonPages.size() == 5) {
+    if (ribbonPages.size() == 6) {
       LinearLayout selection = row();
       selection.addView(button("Share", 0xf0497, this::shareCurrent));
       selection.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
@@ -1807,11 +1805,11 @@ public class MainActivity extends Activity {
       caption.setPadding(0, 0, 0, 0);
       caption.setGravity(Gravity.CENTER);
       colorPanel.addView(caption, new LinearLayout.LayoutParams(dp(80), dp(20)));
-      ((RibbonPage) ribbonPages.get(5)).prependPanel(colorPanel, 80);
+      ((RibbonPage) ribbonPages.get(6)).prependPanel(colorPanel, 80);
     }
-    ribbonTab = 5;
+    ribbonTab = 6;
     for (int i = 0; i < ribbonPages.size(); i++)
-      ribbonPages.get(i).setVisibility(i == 5 ? View.VISIBLE : View.GONE);
+      ribbonPages.get(i).setVisibility(i == 6 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
     setRibbonCollapsed(false);
     updateColorActions();
@@ -2017,14 +2015,15 @@ public class MainActivity extends Activity {
     dialog(name, content);
   }
 
-  private void navigationPanel() {
+  private void buildNavigationRibbon() {
     LinearLayout actions = row();
     actions.addView(button("Symbols", 0xf0645, () -> navigate("documentSymbol")));
     actions.addView(button("Definition", 0xf01a4, () -> navigate("definition")));
     actions.addView(button("References", 0xf0339, () -> navigate("references")));
     actions.addView(button("Info", 0xf02fd, () -> navigate("hover")));
     actions.addView(button("Table", 0xf04eb, this::tableView));
-    dialog("Navigation", flow(actions));
+    actions.addView(button("Line", 0xf027b, this::goTo));
+    ribbonPage(actions);
   }
 
   private void stopNavigation() {

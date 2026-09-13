@@ -503,6 +503,13 @@ public class NativeActivityTest {
       expandTab(root, "Support");
       assertTrue(button(root, "Log .gz").isShown());
       assertNotNull(button(pages.get(3), "Licenses"));
+      assertNull(button(pages.get(2), "Service info"));
+      AlertDialog before = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      expandTab(root, "Navigation");
+      assertSame(before, org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
+      for (String name :
+          new String[] {"Symbols", "Definition", "References", "Info", "Table", "Line"})
+        assertTrue(button(pages.get(5), name).isShown());
       assertNotNull(button(root, "Close file"));
     }
   }

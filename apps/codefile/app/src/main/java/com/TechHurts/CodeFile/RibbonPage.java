@@ -80,7 +80,6 @@ final class RibbonPage extends HorizontalScrollView {
   private String shortLabel(Button button) {
     String label = String.valueOf(button.getContentDescription());
     if (label.equals("Service info")) return "Service";
-    if (label.equals("Navigation")) return "Browse";
     return label;
   }
 
