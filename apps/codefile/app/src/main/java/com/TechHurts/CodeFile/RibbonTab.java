@@ -33,7 +33,15 @@ final class RibbonTab extends Button {
 
   private void refresh() {
     setTextColor(isSelected() ? accent : foreground);
-    setBackgroundColor(isSelected() ? surface : Color.TRANSPARENT);
+    android.graphics.drawable.GradientDrawable shape =
+        new android.graphics.drawable.GradientDrawable();
+    shape.setColor(isSelected() ? surface : Color.TRANSPARENT);
+    float radius = 7 * getResources().getDisplayMetrics().density;
+    shape.setCornerRadii(new float[] {radius, radius, radius, radius, 0, 0, 0, 0});
+    shape.setStroke(
+        Math.max(1, Math.round(getResources().getDisplayMetrics().density)),
+        (accent & 0xffffff) | (isSelected() ? 0xb0000000 : 0x45000000));
+    setBackground(shape);
     underline.setColor(accent);
     invalidate();
   }

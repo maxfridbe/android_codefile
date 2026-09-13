@@ -11,19 +11,26 @@ import android.widget.*;
 import java.util.*;
 
 /** Fixed-height Office-style command groups; a primary tile and two aligned secondary commands. */
-final class RibbonPage extends ViewGroup {
+final class RibbonPage extends HorizontalScrollView {
   private final List<CommandGroup> groups = new ArrayList<>();
   private int surface, foreground, muted, accent;
+  private final LinearLayout track;
 
   RibbonPage(Context context, String[] captions, List<Button> commands, int[][] order) {
     super(context);
     setContentDescription("Grouped command ribbon");
+    setFillViewport(true);
+    setHorizontalScrollBarEnabled(false);
+    setOverScrollMode(OVER_SCROLL_NEVER);
+    track = new LinearLayout(context);
+    track.setOrientation(LinearLayout.HORIZONTAL);
+    addView(track, new LayoutParams(-2, dp(112)));
     for (int i = 0; i < captions.length; i++) {
       List<Button> group = new ArrayList<>();
       for (int index : order[i]) group.add(commands.get(index));
       CommandGroup view = new CommandGroup(context, captions[i], group);
       groups.add(view);
-      addView(view);
+      track.addView(view, new LinearLayout.LayoutParams(dp(184), dp(112)));
     }
   }
 
@@ -41,23 +48,12 @@ final class RibbonPage extends ViewGroup {
     invalidate();
   }
 
-  protected void onMeasure(int ws, int hs) {
-    int width = MeasureSpec.getSize(ws);
-    int each = Math.min(width / Math.max(1, groups.size()), dp(184));
-    for (CommandGroup group : groups)
-      group.measure(
-          MeasureSpec.makeMeasureSpec(each, MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(dp(112), MeasureSpec.EXACTLY));
-    setMeasuredDimension(width, dp(112));
+  void prependPanel(View panel, int width) {
+    track.addView(panel, 0, new LinearLayout.LayoutParams(dp(width), dp(112)));
   }
 
-  protected void onLayout(boolean changed, int l, int t, int r, int b) {
-    int left = 0;
-    for (CommandGroup group : groups) {
-      int width = group.getMeasuredWidth();
-      group.layout(left, 0, left + width, b - t);
-      left += width;
-    }
+  protected void onMeasure(int ws, int hs) {
+    super.onMeasure(ws, MeasureSpec.makeMeasureSpec(dp(112), MeasureSpec.EXACTLY));
   }
 
   private int dp(float value) {
@@ -104,9 +100,7 @@ final class RibbonPage extends ViewGroup {
   private final class CommandGroup extends ViewGroup {
     private final List<Button> commands;
     private final TextView caption;
-    private final Button launcher;
     private final Paint rule = new Paint();
-    private boolean compact;
 
     CommandGroup(Context context, String name, List<Button> commands) {
       super(context);
@@ -130,37 +124,6 @@ final class RibbonPage extends ViewGroup {
       caption.setGravity(Gravity.CENTER);
       caption.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
       addView(caption);
-      launcher = new Button(context);
-      launcher.setAllCaps(false);
-      SpannableStringBuilder launchText =
-          new SpannableStringBuilder(commandText(commands.get(0), true));
-      int labelStart = launchText.toString().indexOf('\n') + 1;
-      launchText.replace(labelStart, launchText.length(), name + " ▾");
-      launcher.setText(launchText);
-      launcher.setContentDescription(name + " commands");
-      launcher.setTextSize(11);
-      launcher.setOnClickListener(v -> showCommands());
-      addView(launcher);
-    }
-
-    private CharSequence menuLabel(Button command) {
-      CharSequence text = command.getText();
-      int length = Character.charCount(Character.codePointAt(text, 0));
-      return new SpannableStringBuilder(text.subSequence(0, length))
-          .append("  ")
-          .append(command.getContentDescription());
-    }
-
-    private void showCommands() {
-      PopupMenu menu = new PopupMenu(getContext(), launcher);
-      for (int i = 0; i < commands.size(); i++)
-        menu.getMenu().add(0, i, i, menuLabel(commands.get(i)));
-      menu.setOnMenuItemClickListener(
-          item -> {
-            commands.get(item.getItemId()).performClick();
-            return true;
-          });
-      menu.show();
     }
 
     void tint() {
@@ -169,27 +132,19 @@ final class RibbonPage extends ViewGroup {
         command.setTextColor(foreground);
         command.setBackground(commandBackground());
       }
-      launcher.setTextColor(foreground);
-      launcher.setBackground(commandBackground());
       rule.setColor((accent & 0xffffff) | 0x65000000);
       invalidate();
     }
 
     protected void onMeasure(int ws, int hs) {
       int w = MeasureSpec.getSize(ws);
-      compact = w < dp(138);
       int primary = dp(56), secondary = Math.max(0, w - dp(65));
       for (int i = 0; i < commands.size(); i++) {
         Button button = commands.get(i);
-        button.setVisibility(compact ? GONE : VISIBLE);
         button.measure(
             MeasureSpec.makeMeasureSpec(i == 0 ? primary : secondary, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(dp(i == 0 ? 92 : 44), MeasureSpec.EXACTLY));
       }
-      launcher.setVisibility(compact ? VISIBLE : GONE);
-      launcher.measure(
-          MeasureSpec.makeMeasureSpec(Math.max(0, w - dp(12)), MeasureSpec.EXACTLY),
-          MeasureSpec.makeMeasureSpec(dp(96), MeasureSpec.EXACTLY));
       caption.measure(
           MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
           MeasureSpec.makeMeasureSpec(dp(16), MeasureSpec.EXACTLY));
@@ -201,7 +156,6 @@ final class RibbonPage extends ViewGroup {
       commands.get(0).layout(dp(3), dp(2), dp(59), dp(94));
       for (int i = 1; i < commands.size(); i++)
         commands.get(i).layout(dp(62), dp(2 + 48 * (i - 1)), w - dp(3), dp(46 + 48 * (i - 1)));
-      launcher.layout(dp(6), dp(2), w - dp(6), dp(98));
       caption.layout(0, dp(96), w, dp(112));
     }
 

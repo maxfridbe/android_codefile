@@ -9,6 +9,38 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 /** Gutter gestures select complete source lines immediately; no long-press timeout is involved. */
 final class LineSelectionEditor extends CodeEditor {
   private boolean dragging;
+  private float touchX, touchY, lastTouchY;
+  private boolean ribbonGesture, multitouch;
+  private java.util.function.IntConsumer ribbonDrag = delta -> {};
+
+  void setOnRibbonDrag(java.util.function.IntConsumer callback) {
+    ribbonDrag = callback;
+  }
+
+  public boolean dispatchTouchEvent(MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      touchX = event.getRawX();
+      touchY = lastTouchY = event.getRawY();
+      ribbonGesture = false;
+      multitouch = false;
+    } else if (action == MotionEvent.ACTION_POINTER_DOWN) {
+      multitouch = true;
+    } else if (action == MotionEvent.ACTION_MOVE
+        && !multitouch
+        && event.getPointerCount() == 1
+        && !dragging
+        && !getEventHandler().hasAnyHeldHandle()) {
+      float dy = event.getRawY() - touchY, dx = event.getRawX() - touchX;
+      if (!ribbonGesture
+          && Math.abs(dy) > android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop()
+          && Math.abs(dy) > Math.abs(dx)) ribbonGesture = true;
+      if (ribbonGesture) ribbonDrag.accept(Math.round(lastTouchY - event.getRawY()));
+      lastTouchY = event.getRawY();
+    }
+    return super.dispatchTouchEvent(event);
+  }
+
   private int anchor, first = -1, last = -1;
   private float pointerY;
   private Runnable selectionFinished = () -> {};

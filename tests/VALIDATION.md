@@ -1,22 +1,23 @@
-# Native release validation — v26.0912.006
+# Native release validation — v26.0913.001
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9751006`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752001`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 35 JUnit/Robolectric tests: passed, no failures or skips.
+- 37 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
 - Theme selection immediately repaints the existing editor without replacing its document. All 14 palettes load native syntax themes; foreground contrast is at least 4.5:1 and accent contrast at least 3:1 against the editor background.
 - Slow upward gutter dragging selects complete lines, excluding the following line; selection actions include Share and Ask LLM.
-- Active-tab clicks collapse/reopen the ribbon without hiding the filename. Scroll displacement changes ribbon height proportionally; zero-distance layout scroll events no longer cancel tab animations.
+- Active-tab clicks collapse/reopen the ribbon without hiding the filename. Finger movement changes ribbon height proportionally; editor scroll notifications cannot feed layout changes back into ribbon height. Pinch and selection-handle gestures do not drive ribbon movement.
 - Embedded Java service resolves a shadowed local variable to its same-file declaration, initializes without a network endpoint, and provides a labelled lexical fallback for other languages.
 - Office-style ribbon groups use a stable 112dp height, shared caption baselines, outlined primary tiles and two stacked secondary commands. Tabs stay left-aligned and no wider than 88dp on tablets; the active tab is visibly selected. Phone/tablet native bitmaps inspected.
-- Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Editor drag events collapse and reopen the ribbon.
+- Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
-- Settings groups expand/collapse; native viewer and Settings bitmaps visually inspected. CodeFile identity sits left of File; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
-- Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing, and highlight-color persistence across configuration refresh.
+- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile identity sits left of File; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
+- Standard native selection toolbar is enabled and its Copy action writes the selected text to Android’s clipboard.
+- Search is inline, with a test asserting that opening it creates no dialog. Search tests cover case-insensitive/case-sensitive results, next-match selection, malformed regex handling, clearing, and highlight-color persistence across configuration refresh.
 - YAML tests cover comments, quoted scalars, block content, indentation, aliases, custom tags, multiple documents, invalid input and idempotence. Inline-commented flow collections retain flow layout to preserve their comments.
 - CSV/TSV tests cover escaped quotes, multiline fields, empty fields, leading zeros, significant spaces and malformed quotes. JSON Lines preserves large numeric tokens; Markdown preserves hard-break spaces. XML preserves mixed content and rejects DTDs/external entities.
 - All bundled grammar catalog entries load. Data-table records are parsed off the UI thread.
@@ -26,7 +27,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9751006`; minimum Android API 2
 Release SHA-256:
 
 ```
-b7d734ee5a182b3c492cb3af2afd6da163d65e720d15479f399c248a07dbf851
+1fe4d8676354ee9dfc4297d36c7c69b6cc43cda65a244ff8c03ba1f0682ce010
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.

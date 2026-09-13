@@ -54,6 +54,8 @@ public class MainActivity extends Activity {
   private Button ribbonToggle;
   private AlertDialog settingsDialog;
   private String lastSearchTerm = "";
+  private NativeSearch inlineSearch;
+  private EditText searchQuery;
   private final List<View> ribbonPages = new ArrayList<>();
   private WindowInfoTrackerCallbackAdapter windowTracker;
   private final Consumer<WindowLayoutInfo> foldListener =
@@ -291,13 +293,18 @@ public class MainActivity extends Activity {
       commands.add(command);
     }
     String[][] captions = {
-      {"Files", "Search & export"},
+      {"Files", "Sharing"},
       {"Reading", "Zoom"},
       {"Source", "Navigation"},
+      {"Diagnostics", "About"},
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
-      {{0, 1, 4}, {2, 5, 3}}, {{0, 1, 2}, {5, 4, 3}}, {{1, 0, 2}, {3, 4, 5}}, {{0, 1, 2}, {3, 4, 5}}
+      {{0, 1, 5}, {4, 2, 3}},
+      {{0, 1, 2}, {5, 4, 3}},
+      {{1, 0, 2}, {3, 4, 5}},
+      {{0, 1, 2}, {3, 4, 5}},
+      {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
     RibbonPage page = new RibbonPage(this, captions[index], commands, order[index]);
@@ -371,7 +378,7 @@ public class MainActivity extends Activity {
 
   private void buildScreen() {
     root = column();
-    root.setPadding(dp(8), 0, dp(8), dp(4));
+    root.setPadding(dp(4), dp(2), dp(4), dp(2));
     controls = column();
     reader = column();
     Rect previousHinge = workspace == null ? null : workspace.hinge;
@@ -391,9 +398,9 @@ public class MainActivity extends Activity {
     appName.setPadding(dp(3), 0, 0, 0);
     appName.setSingleLine(true);
     identity.addView(appName, new LinearLayout.LayoutParams(-2, -2));
-    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(76), dp(48)));
-    String[] groups = {"File", "View", "Code"};
-    int[] icons = {0xf0224, 0xf06d0, 0xf0174};
+    ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(78), dp(40)));
+    String[] groups = {"File", "View", "Code", "Support"};
+    int[] icons = {0xf0224, 0xf06d0, 0xf0174, 0xf0625};
     ribbonTabButtons.clear();
     for (int i = 0; i < groups.length; i++) {
       final int index = i;
@@ -405,25 +412,30 @@ public class MainActivity extends Activity {
       tabButton.setColors(fg, muted, accent, panel);
       tabButton.setSelected(i == ribbonTab);
       ribbonTabButtons.add(tabButton);
-      LinearLayout.LayoutParams tabLayout = new LinearLayout.LayoutParams(0, dp(48), 1);
-      tabLayout.setMargins(0, 0, 0, 0);
+      LinearLayout.LayoutParams tabLayout =
+          new LinearLayout.LayoutParams(dp(i == 3 ? 84 : 66), dp(40));
+      tabLayout.setMargins(dp(1), dp(2), dp(1), 0);
       ribbonTabs.addView(tabButton, tabLayout);
+      if (i == 2) ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
     }
     ribbonToggle =
         quickAction("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
-    ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
     ribbonTabs.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
     ribbonToggle.setTag("ribbonToggle");
     ribbonTabs.addView(ribbonToggle);
-    controls.addView(ribbonTabs);
+    HorizontalScrollView tabScroll = new HorizontalScrollView(this);
+    tabScroll.setHorizontalScrollBarEnabled(false);
+    tabScroll.setFillViewport(true);
+    tabScroll.addView(ribbonTabs);
+    controls.addView(tabScroll);
     ribbonBody = new CollapsingRibbon(this);
     ribbonPages.clear();
     controls.addView(ribbonBody);
     LinearLayout fileActions = row();
     fileActions.addView(button("Open", 0xf0770, actions::open));
     fileActions.addView(button("Paste", 0xf0192, this::paste));
-    fileActions.addView(button("Search", 0xf0349, this::find));
-    fileActions.addView(button("Log .gz", 0xf00e4, actions::shareDebugLog));
+    fileActions.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
+    fileActions.addView(button("Close", 0xf0156, this::closeCurrent));
     fileActions.addView(button("Share", 0xf0497, this::shareCurrent));
     fileActions.addView(
         button(
@@ -432,12 +444,19 @@ public class MainActivity extends Activity {
             () -> actions.save(current.name, current.formatted ? current.text() : current.raw)));
     ribbonPage(fileActions);
     documentRow = row();
+    documentRow.setTag("fileStrip");
+    android.graphics.drawable.GradientDrawable fileSurface =
+        new android.graphics.drawable.GradientDrawable();
+    fileSurface.setColor(panel);
+    fileSurface.setCornerRadii(new float[] {dp(8), dp(8), dp(8), dp(8), 0, 0, 0, 0});
+    fileSurface.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
+    documentRow.setBackground(fileSurface);
     tabs = new Spinner(this);
     documentRow.addView(tabs, new LinearLayout.LayoutParams(0, dp(48), 1));
     documentRow.addView(quickAction("Close file", 0xf0156, this::closeCurrent));
     controls.addView(documentRow);
     title = label("", 11, muted);
-    reader.addView(title);
+
     LinearLayout tools = row();
     tools.addView(button("Find", 0xf0349, this::find));
     tools.addView(button("Line", 0xf027b, this::goTo));
@@ -484,24 +503,49 @@ public class MainActivity extends Activity {
     ribbonPage(nav);
     setRibbonCollapsed(ribbonCollapsed);
     navStatus = label("Native viewer · navigation disabled", 10, muted);
-    reader.addView(navStatus);
+
     LinearLayout code = row();
     editor = new LineSelectionEditor(this);
     ((LineSelectionEditor) editor).setOnLineSelectionFinished(this::showSelectionRibbon);
+    ((LineSelectionEditor) editor)
+        .setOnRibbonDrag(delta -> ribbonScroll(delta, ScrollEvent.CAUSE_USER_DRAG));
     editor.setContentDescription("Native source code viewer");
     gutter = new SourceGutter();
     code.addView(gutter, new LinearLayout.LayoutParams(dp(54), -1));
     code.addView(editor, new LinearLayout.LayoutParams(0, -1, 1));
     reader.addView(code, new LinearLayout.LayoutParams(-1, 0, 1));
     status = label("", 10, muted);
-    reader.addView(status);
+    status.setSingleLine(true);
+    status.setPadding(dp(6), dp(4), dp(6), dp(4));
+    HorizontalScrollView statusScroll = new HorizontalScrollView(this);
+    statusScroll.setHorizontalScrollBarEnabled(false);
+    statusScroll.addView(status);
+    reader.addView(statusScroll);
+    ((RibbonPage) ribbonPages.get(0)).prependPanel(buildInlineSearch(), 316);
+    LinearLayout support = row();
+    support.addView(button("Log .gz", 0xf00e4, actions::shareDebugLog));
+    support.addView(
+        button("Copy status", 0xf018f, () -> actions.copy(status.getText().toString())));
+    support.addView(
+        button(
+            "Service info",
+            0xf0318,
+            () -> showText("Language service", navStatus.getText().toString())));
+    support.addView(
+        button(
+            "About",
+            0xf0625,
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.001")));
+    support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
+    support.addView(button("Settings", 0xf0493, this::settings));
+    ribbonPage(support);
     editor.subscribeEvent(SelectionChangeEvent.class, (event, unsubscribe) -> updateStatus());
     editor.subscribeEvent(
         ScrollEvent.class,
         (event, unsubscribe) -> {
           gutter.invalidate();
           panSourceGutter(event.getEndX());
-          ribbonScroll(event.getEndY() - event.getStartY(), event.getCause());
+
           if (event.getCause() == ScrollEvent.CAUSE_SCALE_TEXT)
             prefs
                 .edit()
@@ -515,9 +559,9 @@ public class MainActivity extends Activity {
     root.setOnApplyWindowInsetsListener(
         (v, insets) -> {
           root.setPadding(
-              dp(8) + insets.getSystemWindowInsetLeft(),
+              dp(4) + insets.getSystemWindowInsetLeft(),
               insets.getSystemWindowInsetTop(),
-              dp(8) + insets.getSystemWindowInsetRight(),
+              dp(4) + insets.getSystemWindowInsetRight(),
               dp(4) + insets.getSystemWindowInsetBottom());
           return insets.consumeSystemWindowInsets();
         });
@@ -563,7 +607,7 @@ public class MainActivity extends Activity {
                 | CodeEditor.FLAG_DRAW_WHITESPACE_TRAILING
             : 0);
     target.setWordwrap(prefs.getBoolean("wrap", true), true);
-    target.getComponent(EditorTextActionWindow.class).setEnabled(false);
+    target.getComponent(EditorTextActionWindow.class).setEnabled(true);
     EditorColorScheme scheme = target.getColorScheme();
     scheme.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, bg);
@@ -678,7 +722,14 @@ public class MainActivity extends Activity {
     if (current == null || status == null) return;
     int line = editor.getCursor().getLeftLine();
     status.setText(
-        "Ln "
+        current.language
+            + " · "
+            + current.encoding
+            + " · "
+            + (current.formatted ? "preview" : "original")
+            + " · "
+            + navStatus.getText()
+            + "   ·   Ln "
             + (line + 1)
             + ", Col "
             + (editor.getCursor().getLeftColumn() + 1)
@@ -776,31 +827,58 @@ public class MainActivity extends Activity {
   }
 
   private void find() {
+    selectRibbon(0);
+    ((RibbonPage) ribbonPages.get(0)).smoothScrollTo(0, 0);
+    searchQuery.requestFocus();
+    ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
+        .showSoftInput(searchQuery, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+  }
+
+  private LinearLayout buildInlineSearch() {
     LinearLayout content = column();
-    EditText query = input(content, "Search this file", lastSearchTerm, false);
-    CheckBox regex = check(content, "Regular expression", false),
-        match = check(content, "Match case", false);
-    TextView summary = label("Enter a search term", 12, muted);
-    content.addView(summary);
-    NativeSearch search = new NativeSearch(editor, query, match, regex, summary);
-    LinearLayout navigation = row();
-    navigation.addView(button("Previous", 0xf0141, search::previous));
-    navigation.addView(button("Next", 0xf0142, search::next));
-    navigation.addView(button("Clear", 0xf0156, search::clear));
-    strip(content, navigation);
-    content.addView(label("Match highlight color", 12, muted));
+    content.setPadding(dp(4), dp(3), dp(4), 0);
+    content.setTag("searchPanel");
+    LinearLayout queryRow = row();
+    searchQuery = new EditText(this);
+    searchQuery.setHint("Search this file");
+    searchQuery.setContentDescription("Search this file");
+    searchQuery.setTextSize(14);
+    searchQuery.setSingleLine(true);
+    searchQuery.setPadding(dp(8), 0, dp(4), 0);
+    searchQuery.setText(lastSearchTerm);
+    queryRow.addView(searchQuery, new LinearLayout.LayoutParams(0, dp(44), 1));
+    TextView summary = label("", 10, muted);
+    LinearLayout options = row();
+    CheckBox match = check(options, "Match case", false),
+        regex = check(options, "Regular expression", false);
+    match.setText("Aa");
+    regex.setText(".*");
+    match.setTextSize(12);
+    regex.setTextSize(12);
+    match.setPadding(0, 0, 0, 0);
+    regex.setPadding(0, 0, 0, 0);
+    inlineSearch = new NativeSearch(editor, searchQuery, match, regex, summary);
+    queryRow.addView(
+        quickAction("Previous", 0xf0141, inlineSearch::previous),
+        new LinearLayout.LayoutParams(dp(36), dp(44)));
+    queryRow.addView(
+        quickAction("Next", 0xf0142, inlineSearch::next),
+        new LinearLayout.LayoutParams(dp(36), dp(44)));
+    queryRow.addView(
+        quickAction("Clear", 0xf0156, inlineSearch::clear),
+        new LinearLayout.LayoutParams(dp(36), dp(44)));
+    content.addView(queryRow);
     LinearLayout colors = row();
-    String[] names = {"Yellow", "Cyan", "Pink", "Green"};
-    int[] values = {0x70ffcc33, 0x7040cfff, 0x70ff66bb, 0x707ad957};
-    for (int i = 0; i < names.length; i++) addSearchColor(colors, names[i], values[i]);
-    content.addView(colors);
-    AlertDialog dialog = dialog("Search", scrolling(content));
-    dialog.getWindow().setGravity(Gravity.BOTTOM);
-    dialog.setOnDismissListener(
-        ignored -> {
-          lastSearchTerm = query.getText().toString();
-          search.close();
-        });
+    addSearchColor(colors, "Yellow", 0x70ffcc33);
+    addSearchColor(colors, "Cyan", 0x7040cfff);
+    addSearchColor(colors, "Pink", 0x70ff66bb);
+    addSearchColor(colors, "Green", 0x707ad957);
+    options.addView(colors, new LinearLayout.LayoutParams(0, dp(40), 1));
+    content.addView(options, new LinearLayout.LayoutParams(-1, dp(44)));
+    summary.setPadding(dp(6), 0, 0, 0);
+    content.addView(summary, new LinearLayout.LayoutParams(-1, dp(20)));
+    recolor(content);
+    return content;
   }
 
   private void addSearchColor(LinearLayout colors, String name, int color) {
@@ -814,6 +892,12 @@ public class MainActivity extends Activity {
               editor.invalidate();
             });
     swatch.setText(iconText(0xf0763, ""));
+    swatch.setTextSize(24);
+    swatch.setPadding(0, 0, 0, 0);
+    swatch.setMinWidth(0);
+    swatch.setMinimumWidth(0);
+    swatch.setBackgroundColor(Color.TRANSPARENT);
+    swatch.setTag(color | 0xff000000);
     swatch.setTextColor(color | 0xff000000);
     colors.addView(swatch, new LinearLayout.LayoutParams(0, dp(48), 1));
   }
@@ -1003,8 +1087,21 @@ public class MainActivity extends Activity {
 
   private void recolor(View v) {
     if (v instanceof CodeEditor) return;
+    if ("fileStrip".equals(v.getTag())) {
+      GradientDrawable surface = new GradientDrawable();
+      surface.setColor(panel);
+      surface.setCornerRadii(new float[] {dp(8), dp(8), dp(8), dp(8), 0, 0, 0, 0});
+      surface.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
+      v.setBackground(surface);
+    }
+    if (v instanceof Button && v.getTag() instanceof Integer) {
+      ((Button) v).setTextColor((Integer) v.getTag());
+      return;
+    }
     if (v instanceof RibbonPage) {
       ((RibbonPage) v).setColors(panel, fg, muted, accent);
+      View search = v.findViewWithTag("searchPanel");
+      if (search != null) recolor(search);
       return;
     }
     if (v instanceof RibbonTab) {
@@ -1015,6 +1112,12 @@ public class MainActivity extends Activity {
       ((Spinner) v).setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(panel));
     if ("quickAction".equals(v.getTag()) || "ribbonToggle".equals(v.getTag())) {
       ((Button) v).setTextColor(accent);
+      v.setBackgroundColor(Color.TRANSPARENT);
+      return;
+    }
+    if (v instanceof CheckBox) {
+      ((CheckBox) v).setTextColor(fg);
+      ((CheckBox) v).setButtonTintList(android.content.res.ColorStateList.valueOf(accent));
       v.setBackgroundColor(Color.TRANSPARENT);
       return;
     }
@@ -1065,26 +1168,55 @@ public class MainActivity extends Activity {
   }
 
   private LinearLayout settingsSection(LinearLayout page, String name, int icon, boolean open) {
-    LinearLayout body = column();
-    body.setPadding(dp(12), dp(4), dp(12), dp(12));
-    Button heading = button(name, icon, () -> {});
-    heading.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-    heading.setPadding(dp(16), 0, dp(12), 0);
-    heading.setTextSize(15);
-    heading.setOnClickListener(
-        v -> {
-          boolean expanding = body.getVisibility() != View.VISIBLE;
-          body.setVisibility(expanding ? View.VISIBLE : View.GONE);
-          heading.setText(iconText(expanding ? 0xf0143 : 0xf0140, name));
-        });
-    heading.setText(iconText(open ? 0xf0143 : 0xf0140, name));
-    LinearLayout.LayoutParams headingLayout = new LinearLayout.LayoutParams(-1, dp(52));
-    headingLayout.setMargins(0, dp(4), 0, dp(4));
-    heading.setLayoutParams(headingLayout);
-    page.addView(heading);
-    page.addView(body);
-    body.setVisibility(open ? View.VISIBLE : View.GONE);
-    return body;
+    RibbonTab tab = new RibbonTab(this);
+    String shortName =
+        name.equals("Reader & formatting")
+            ? "Reader"
+            : name.equals("AI analysis")
+                ? "AI"
+                : name.equals("About & diagnostics") ? "About" : name;
+    tab.setText(iconText(icon, shortName));
+    tab.setTextSize(12);
+    tab.setContentDescription(name);
+    tab.setColors(fg, muted, accent, panel);
+    return ((SettingsSheet) page).addCategory(tab);
+  }
+
+  private Spinner settingChoice(
+      LinearLayout parent, String title, String[] values, String selected) {
+    LinearLayout setting = row();
+    setting.setPadding(dp(8), dp(3), dp(8), dp(3));
+    TextView name = label(title, 13, muted);
+    name.setPadding(0, 0, 0, 0);
+    setting.addView(name, new LinearLayout.LayoutParams(dp(90), dp(48)));
+    name.setGravity(Gravity.CENTER_VERTICAL);
+    Spinner choice = new Spinner(this);
+    choice.setContentDescription(title);
+    ArrayAdapter<String> adapter =
+        new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, values) {
+          public View getView(int position, View convert, ViewGroup group) {
+            TextView view = (TextView) super.getView(position, convert, group);
+            view.setTextColor(fg);
+            view.setTextSize(14);
+            return view;
+          }
+
+          public View getDropDownView(int position, View convert, ViewGroup group) {
+            TextView view = (TextView) super.getDropDownView(position, convert, group);
+            view.setTextColor(fg);
+            view.setBackgroundColor(panel);
+            return view;
+          }
+        };
+    choice.setAdapter(adapter);
+    for (int i = 0; i < values.length; i++) if (values[i].equals(selected)) choice.setSelection(i);
+    choice.setPopupBackgroundDrawable(new android.graphics.drawable.ColorDrawable(panel));
+    setting.addView(choice, new LinearLayout.LayoutParams(0, dp(48), 1));
+    parent.addView(setting);
+    View rule = new View(this);
+    rule.setBackgroundColor((accent & 0xffffff) | 0x30000000);
+    parent.addView(rule, new LinearLayout.LayoutParams(-1, dp(1)));
+    return choice;
   }
 
   private EditText numericSetting(
@@ -1120,10 +1252,10 @@ public class MainActivity extends Activity {
   }
 
   private void settings() {
-    LinearLayout page = column();
-    page.setPadding(dp(12), dp(8), dp(12), dp(12));
+    LinearLayout page = new SettingsSheet(this);
     LinearLayout content = settingsSection(page, "Appearance", 0xf030e, true);
-    Spinner theme = select(content, "Theme", AppTheme.names(), prefs.getString("theme", "Carbon"));
+    Spinner theme =
+        settingChoice(content, "Theme", AppTheme.names(), prefs.getString("theme", "Carbon"));
     theme.setOnItemSelectedListener(
         new AdapterView.OnItemSelectedListener() {
           public void onNothingSelected(AdapterView<?> p) {}
@@ -1138,11 +1270,16 @@ public class MainActivity extends Activity {
           }
         });
     Spinner font =
-        select(
+        settingChoice(
             content,
-            "Embedded code font",
+            "Font",
             new String[] {"JetBrains", "Fira", "System"},
             prefs.getString("font", "JetBrains"));
+    TextView sample = label("Aa Bb Cc  0123456789\nclass Code { return true; }", 16, accent);
+    sample.setTypeface(codeFont);
+    sample.setPadding(dp(12), dp(20), dp(12), dp(20));
+    content.addView(sample);
+    content.addView(label("Theme changes apply immediately", 11, muted));
     content = settingsSection(page, "Reader & formatting", 0xf0278, false);
     EditText size = numericSetting(content, "Text size", 8, 40, prefs.getInt("size", 14), false),
         spacing =
@@ -1293,7 +1430,6 @@ public class MainActivity extends Activity {
                 for (int i = 0; i < boolKeys.length; i++)
                   edit.putBoolean(boolKeys[i], toggles.get(i).isChecked());
                 edit.apply();
-                stopNavigation();
                 d[0].dismiss();
                 applyAppearance(null);
               } catch (Exception e) {
@@ -1307,35 +1443,7 @@ public class MainActivity extends Activity {
             "Diagnostics omit source, credentials, endpoint URLs, prompts, and responses.",
             12,
             muted));
-    content.addView(
-        button(
-            "Open-source licenses",
-            0xf0fc3,
-            () -> {
-              io.execute(
-                  () -> {
-                    try {
-                      StringBuilder text = new StringBuilder();
-                      for (String path :
-                          new String[] {
-                            "NOTICES.txt",
-                            "textmate/LICENSE-sora.txt",
-                            "textmate/LICENSE-vscode.txt",
-                            "textmate/LICENSE-snakeyaml.txt",
-                            "fonts/OFL-JetBrainsMono.txt",
-                            "fonts/OFL-FiraCode.txt",
-                            "fonts/LICENSE-NerdFonts.txt"
-                          })
-                        text.append(
-                                new String(
-                                    bytes(getAssets().open(path), LIMIT), StandardCharsets.UTF_8))
-                            .append("\n\n");
-                      ui(() -> showText("Licenses", text.toString()));
-                    } catch (Exception e) {
-                      error("Could not load notices");
-                    }
-                  });
-            }));
+    content.addView(button("Open-source licenses", 0xf0fc3, this::showLicenses));
     try {
       content.addView(
           label(
@@ -1347,18 +1455,45 @@ public class MainActivity extends Activity {
     } catch (Exception ignored) {
     }
     LinearLayout sheet = column();
-    sheet.addView(scrolling(page), new LinearLayout.LayoutParams(-1, 0, 1));
+    sheet.addView(page, new LinearLayout.LayoutParams(-1, 0, 1));
     sheet.addView(save, new LinearLayout.LayoutParams(-1, dp(48)));
-    d[0] = dialog("Settings", sheet);
+
     int availableHeight =
         root.getHeight() > 0 ? root.getHeight() : getResources().getDisplayMetrics().heightPixels;
     int availableWidth =
         root.getWidth() > 0 ? root.getWidth() : getResources().getDisplayMetrics().widthPixels;
-    d[0].getWindow()
-        .setLayout(
-            Math.min(availableWidth - dp(24), dp(620)),
-            Math.min(availableHeight - dp(24), dp(760)));
+    int settingsHeight = Math.min(availableHeight - dp(24), dp(720));
+    sheet.setMinimumHeight(Math.max(dp(220), settingsHeight - dp(80)));
+    d[0] = new AlertDialog.Builder(this).setTitle("Settings").setView(sheet).create();
+    d[0].show();
+    d[0].getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg));
+    d[0].getWindow().setLayout(Math.min(availableWidth - dp(24), dp(620)), settingsHeight);
     settingsDialog = d[0];
+  }
+
+  private void showLicenses() {
+    io.execute(
+        () -> {
+          try {
+            StringBuilder text = new StringBuilder();
+            for (String path :
+                new String[] {
+                  "NOTICES.txt",
+                  "textmate/LICENSE-sora.txt",
+                  "textmate/LICENSE-vscode.txt",
+                  "textmate/LICENSE-snakeyaml.txt",
+                  "textmate/LICENSE-javaparser.txt",
+                  "fonts/OFL-JetBrainsMono.txt",
+                  "fonts/OFL-FiraCode.txt",
+                  "fonts/LICENSE-NerdFonts.txt"
+                })
+              text.append(new String(bytes(getAssets().open(path), LIMIT), StandardCharsets.UTF_8))
+                  .append("\n\n");
+            ui(() -> showText("Licenses", text.toString()));
+          } catch (Exception e) {
+            error("Could not load notices");
+          }
+        });
   }
 
   private void tableView() {
@@ -1426,7 +1561,7 @@ public class MainActivity extends Activity {
   }
 
   private void showSelectionRibbon() {
-    if (ribbonPages.size() == 3) {
+    if (ribbonPages.size() == 4) {
       LinearLayout selection = row();
       selection.addView(button("Share", 0xf0497, this::shareCurrent));
       selection.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
@@ -1445,13 +1580,13 @@ public class MainActivity extends Activity {
               }));
       ribbonPage(selection);
     }
-    ribbonTab = 3;
+    ribbonTab = 4;
     for (int i = 0; i < ribbonPages.size(); i++)
-      ribbonPages.get(i).setVisibility(i == 3 ? View.VISIBLE : View.GONE);
+      ribbonPages.get(i).setVisibility(i == 4 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
     setRibbonCollapsed(false);
     int[] range = selectedLines();
-    status.setText("Selected lines " + range[0] + "–" + range[1]);
+    updateStatus();
   }
 
   private void clearSelection() {
@@ -1688,7 +1823,8 @@ public class MainActivity extends Activity {
     NativeLsp server = new NativeLsp();
     lsp = server;
     connecting = true;
-    navStatus.setText("Preparing on-device navigation…");
+    navStatus.setText("Preparing navigation…");
+    updateStatus();
     io.execute(() -> prepareLanguageService(server, doc));
   }
 
@@ -1704,6 +1840,7 @@ public class MainActivity extends Activity {
             navigation = true;
             connecting = false;
             navStatus.setText(server.description());
+            updateStatus();
           });
     } catch (Exception error) {
       ui(
@@ -1714,6 +1851,7 @@ public class MainActivity extends Activity {
             connecting = false;
             navigation = true;
             navStatus.setText("On-device navigation · lexical fallback");
+            updateStatus();
           });
       log.event("language.local.fallback");
     }
@@ -2067,6 +2205,7 @@ public class MainActivity extends Activity {
   protected void onDestroy() {
     stopNavigation();
     if (windowTracker != null) windowTracker.removeWindowLayoutInfoListener(foldListener);
+    if (inlineSearch != null) inlineSearch.close();
     if (editor != null) editor.release();
     io.shutdownNow();
     super.onDestroy();

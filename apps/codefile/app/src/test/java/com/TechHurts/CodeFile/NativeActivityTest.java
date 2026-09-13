@@ -74,6 +74,28 @@ public class NativeActivityTest {
   }
 
   @Test
+  public void normalSelectionRetainsNativeCopyToolbar() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      CodeEditor editor = find(controller.get().getWindow().getDecorView(), CodeEditor.class);
+      io.github.rosemoe.sora.widget.component.EditorTextActionWindow toolbar =
+          editor.getComponent(io.github.rosemoe.sora.widget.component.EditorTextActionWindow.class);
+      assertTrue(toolbar.isEnabled());
+      editor.setSelectionRegion(0, 0, 0, 4);
+      toolbar.displayWindow();
+      View copy = toolbar.getView().findViewById(io.github.rosemoe.sora.R.id.panel_btn_copy);
+      assertEquals(View.VISIBLE, copy.getVisibility());
+      copy.performClick();
+      android.content.ClipboardManager clipboard =
+          (android.content.ClipboardManager)
+              controller.get().getSystemService(Context.CLIPBOARD_SERVICE);
+      assertEquals(
+          editor.getText().getLineString(0).substring(0, 4),
+          clipboard.getPrimaryClip().getItemAt(0).getText().toString());
+    }
+  }
+
+  @Test
   public void sourceFromShareIntentIsNotExecutable() {
     Intent intent =
         new Intent(Intent.ACTION_SEND)
@@ -362,9 +384,7 @@ public class NativeActivityTest {
   }
 
   private void assertFlowBounds(View view) {
-    if (view instanceof ActionFlow
-        || view instanceof RibbonPage
-        || view.getClass().getSimpleName().equals("CommandGroup")) {
+    if (view instanceof ActionFlow || view.getClass().getSimpleName().equals("CommandGroup")) {
       ViewGroup flow = (ViewGroup) view;
       for (int i = 0; i < flow.getChildCount(); i++) {
         View child = flow.getChildAt(i);
@@ -382,7 +402,7 @@ public class NativeActivityTest {
   }
 
   @Test
-  public void ribbonFitsNarrowWidthsAndCollapsesFromActualEditorScrollEvents() {
+  public void ribbonScrollsHorizontallyAndTracksFingerMotionWithoutLayoutFeedback() {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity activity = controller.get();
@@ -397,22 +417,62 @@ public class NativeActivityTest {
           root.layout(0, 0, activity.dp(width), activity.dp(900));
           assertFlowBounds(root);
         }
+      CollapsingRibbon body = find(root, CollapsingRibbon.class);
+      float before = body.fraction();
       editor.dispatchEvent(
           new io.github.rosemoe.sora.event.ScrollEvent(
-              editor,
-              0,
-              0,
-              0,
-              activity.dp(180),
-              io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG));
+              editor, 0, 0, 0, 180, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG));
+      assertEquals("Layout-driven scrolling must not move the ribbon", before, body.fraction(), 0f);
+      long time = android.os.SystemClock.uptimeMillis();
+      dragEditor(editor, time, 400, 160);
       assertNotNull(button(root, "Expand ribbon"));
       assertFalse(button(root, "Format").isShown());
       expandTab(root, "Code");
       assertTrue(button(root, "Format").isShown());
-      editor.dispatchEvent(
-          new io.github.rosemoe.sora.event.ScrollEvent(
-              editor, 0, 80, 0, 0, io.github.rosemoe.sora.event.ScrollEvent.CAUSE_USER_DRAG));
+      dragEditor(editor, time + 500, 160, 400);
       assertNotNull(button(root, "Collapse ribbon"));
+    }
+  }
+
+  private void dragEditor(CodeEditor editor, long time, float from, float to) {
+    for (int i = 0; i < 3; i++) {
+      MotionEvent event =
+          MotionEvent.obtain(
+              time,
+              time + i * 100,
+              i == 0
+                  ? MotionEvent.ACTION_DOWN
+                  : i == 1 ? MotionEvent.ACTION_MOVE : MotionEvent.ACTION_UP,
+              160,
+              i == 0 ? from : to,
+              0);
+      editor.dispatchTouchEvent(event);
+      event.recycle();
+    }
+  }
+
+  @Test
+  public void overflowCommandsRemainReachableAndLogsLiveInSupport() throws Exception {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      root.measure(
+          View.MeasureSpec.makeMeasureSpec(320, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 320, 900);
+      java.lang.reflect.Field field = MainActivity.class.getDeclaredField("ribbonPages");
+      field.setAccessible(true);
+      java.util.List<View> pages = (java.util.List<View>) field.get(activity);
+      RibbonPage file = (RibbonPage) pages.get(0);
+      assertTrue(file.getChildAt(0).getWidth() > file.getWidth());
+      file.scrollTo(file.getChildAt(0).getWidth(), 0);
+      assertTrue(file.getScrollX() > 0);
+      assertFalse(button(root, "Log .gz").isShown());
+      expandTab(root, "Support");
+      assertTrue(button(root, "Log .gz").isShown());
+      assertNotNull(button(pages.get(3), "Licenses"));
+      assertNotNull(button(root, "Close file"));
     }
   }
 
@@ -455,7 +515,7 @@ public class NativeActivityTest {
   @Test
   @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
   @Config(sdk = 28, qualifiers = "w480dp-h850dp")
-  public void settingsUsesCollapsibleGroupsAndRendersNatively() throws Exception {
+  public void settingsUsesCategoryPagesAndRendersNatively() throws Exception {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       View root = controller.get().getWindow().getDecorView();
@@ -465,7 +525,7 @@ public class NativeActivityTest {
       assertFalse(button(settings, "Share debug log (.gz)").isShown());
       button(settings, "About & diagnostics").performClick();
       assertTrue(button(settings, "Share debug log (.gz)").isShown());
-      button(settings, "About & diagnostics").performClick();
+      button(settings, "Appearance").performClick();
       settings.measure(
           View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
           View.MeasureSpec.makeMeasureSpec(850, View.MeasureSpec.EXACTLY));
@@ -506,9 +566,14 @@ public class NativeActivityTest {
         Thread.sleep(20);
       }
       editor.setText("Alpha alpha ALPHA\n");
-      button(root, "Search").performClick();
-      AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      View controls = dialog.getWindow().getDecorView();
+      AlertDialog before = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      button(root, "Find").performClick();
+      assertSame(
+          "Search stays inline",
+          before,
+          org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog());
+      View controls = root.findViewWithTag("searchPanel");
+      assertNotNull(controls);
       EditText query = find(controls, EditText.class);
       query.setText("alpha");
       awaitMatches(editor, 3);
@@ -534,7 +599,6 @@ public class NativeActivityTest {
       button(controls, "Clear").performClick();
       button(controls, "Next").performClick();
       assertFalse(editor.getSearcher().hasQuery());
-      dialog.dismiss();
       activity.onConfigurationChanged(activity.getResources().getConfiguration());
       assertEquals(
           color,
@@ -565,7 +629,7 @@ public class NativeActivityTest {
         for (View page : (java.util.List<View>) pages.get(activity))
           if (page.isShown()) {
             assertEquals(activity.dp(112), page.getHeight());
-            ViewGroup groups = (ViewGroup) page;
+            ViewGroup groups = (ViewGroup) ((ViewGroup) page).getChildAt(0);
             assertEquals(groups.getChildAt(0).getTop(), groups.getChildAt(1).getTop());
             assertEquals(groups.getChildAt(0).getBottom(), groups.getChildAt(1).getBottom());
             assertFlowBounds(page);
