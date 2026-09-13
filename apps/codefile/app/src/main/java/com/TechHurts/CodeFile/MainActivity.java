@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
   private final List<RibbonTab> ribbonTabButtons = new ArrayList<>();
   private boolean ribbonCollapsed;
   private int ribbonTab;
-  private Button ribbonToggle;
+  private Button ribbonToggle, wrapButton;
   private AlertDialog settingsDialog;
   private String lastSearchTerm = "";
   private final List<Button> highlightSwatches = new ArrayList<>();
@@ -476,24 +476,18 @@ public class MainActivity extends Activity {
               configureEditor(editor);
             }));
     tools.addView(button("Line", 0xf027b, this::goTo));
-    tools.addView(
+    wrapButton =
         button(
             "Wrap",
             0xf05b6,
             () -> {
               prefs.edit().putBoolean("wrap", !prefs.getBoolean("wrap", true)).apply();
               configureEditor(editor);
-            }));
+            });
+    tools.addView(wrapButton);
     tools.addView(button("Zoom −", 0xf06ec, () -> zoom(-2)));
     tools.addView(button("Zoom +", 0xf06ed, () -> zoom(2)));
-    tools.addView(
-        button(
-            "Fit width",
-            0xf05b6,
-            () -> {
-              prefs.edit().putBoolean("wrap", true).apply();
-              editor.setWordwrap(true, true);
-            }));
+    tools.addView(button("Fit width", 0xf05b6, this::fitWidth));
     ribbonPage(tools);
     LinearLayout nav = row();
     nav.addView(
@@ -545,7 +539,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.006")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.007")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
@@ -639,7 +633,12 @@ public class MainActivity extends Activity {
                 | CodeEditor.FLAG_DRAW_WHITESPACE_INNER
                 | CodeEditor.FLAG_DRAW_WHITESPACE_TRAILING
             : 0);
-    target.setWordwrap(prefs.getBoolean("wrap", true), true);
+    boolean wrapped = prefs.getBoolean("wrap", true);
+    target.setWordwrap(wrapped, true);
+    if (wrapButton != null) {
+      wrapButton.setSelected(wrapped);
+      androidx.core.view.ViewCompat.setStateDescription(wrapButton, wrapped ? "On" : "Off");
+    }
     target.getComponent(EditorTextActionWindow.class).setEnabled(true);
     EditorColorScheme scheme = target.getColorScheme();
     scheme.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg);
@@ -1260,6 +1259,22 @@ public class MainActivity extends Activity {
     int offset = column;
     for (int i = 0; i < line; i++) offset += lines[i].length() + 1;
     return offset;
+  }
+
+  private void fitWidth() {
+    if (editor.getWidth() <= dp(16)) return;
+    float widest = 0;
+    for (int i = 0; i < editor.getText().getLineCount(); i++) {
+      io.github.rosemoe.sora.text.ContentLine line = editor.getText().getLine(i);
+      widest = Math.max(widest, editor.getRenderer().measureText(line, i, 0, line.length()));
+    }
+    if (widest <= 0) return;
+    float size = editor.getTextSizePx() / getResources().getDisplayMetrics().scaledDensity;
+    float ratio = (editor.getWidth() - dp(16)) / (widest + editor.measureTextRegionOffset());
+    int fitted = Math.max(8, Math.min(40, (int) Math.floor(size * ratio)));
+    editor.setTextSize(fitted);
+    prefs.edit().putInt("size", fitted).apply();
+    gutter.invalidate();
   }
 
   private void zoom(int amount) {

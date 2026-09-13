@@ -4,10 +4,11 @@ import android.content.Context;
 import android.graphics.*;
 import android.widget.Button;
 
-/** Flat tab with a visible active underline, independent of command-button styling. */
+/** Rounded tab with an open bottom edge joining the command ribbon. */
 final class RibbonTab extends Button {
-  private final Paint underline = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private int foreground, muted, accent, surface;
+  private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final Path border = new Path();
+  private int foreground, accent, surface;
 
   RibbonTab(Context context) {
     super(context);
@@ -20,7 +21,6 @@ final class RibbonTab extends Button {
 
   void setColors(int foreground, int muted, int accent, int surface) {
     this.foreground = foreground;
-    this.muted = muted;
     this.accent = accent;
     this.surface = surface;
     refresh();
@@ -39,20 +39,25 @@ final class RibbonTab extends Button {
     shape.setColor(isSelected() ? surface : Color.TRANSPARENT);
     float radius = 7 * getResources().getDisplayMetrics().density;
     shape.setCornerRadii(new float[] {radius, radius, radius, radius, 0, 0, 0, 0});
-    shape.setStroke(
-        Math.max(1, Math.round(getResources().getDisplayMetrics().density)),
-        (accent & 0xffffff) | (isSelected() ? 0xb0000000 : 0x45000000));
     setBackground(shape);
-    underline.setColor(accent);
+    outline.setColor((accent & 0xffffff) | (isSelected() ? 0xb0000000 : 0x45000000));
+    outline.setStyle(Paint.Style.STROKE);
+    outline.setStrokeWidth(Math.max(1, getResources().getDisplayMetrics().density));
     invalidate();
   }
 
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    if (isSelected()) {
-      float inset = getWidth() * .22f;
-      float height = 3 * getResources().getDisplayMetrics().density;
-      canvas.drawRect(inset, getHeight() - height, getWidth() - inset, getHeight(), underline);
-    }
+    float edge = outline.getStrokeWidth() / 2;
+    float radius = 7 * getResources().getDisplayMetrics().density;
+    float right = getWidth() - edge;
+    border.reset();
+    border.moveTo(edge, getHeight());
+    border.lineTo(edge, edge + radius);
+    border.quadTo(edge, edge, edge + radius, edge);
+    border.lineTo(right - radius, edge);
+    border.quadTo(right, edge, right, edge + radius);
+    border.lineTo(right, getHeight());
+    canvas.drawPath(border, outline);
   }
 }

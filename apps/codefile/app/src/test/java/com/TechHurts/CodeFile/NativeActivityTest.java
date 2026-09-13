@@ -250,7 +250,7 @@ public class NativeActivityTest {
       button(root, "Wrap").performClick();
       assertFalse(editor.isWordwrap());
       button(root, "Fit width").performClick();
-      assertTrue(editor.isWordwrap());
+      assertFalse(editor.isWordwrap());
       assertEquals(text, editor.getText().toString());
     }
   }
@@ -511,6 +511,34 @@ public class NativeActivityTest {
           new String[] {"Symbols", "Definition", "References", "Info", "Table", "Line"})
         assertTrue(button(pages.get(5), name).isShown());
       assertNotNull(button(root, "Close file"));
+    }
+  }
+
+  @Test
+  public void fitWidthPreservesWrapAndItsRibbonState() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      CodeEditor editor = find(root, CodeEditor.class);
+      root.measure(
+          View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 480, 1000);
+      expandTab(root, "View");
+      Button wrap = button(root, "Wrap");
+      assertTrue(wrap.isSelected());
+      button(root, "Fit width").performClick();
+      assertTrue(editor.isWordwrap());
+      assertTrue(wrap.isSelected());
+      wrap.performClick();
+      assertFalse(editor.isWordwrap());
+      assertFalse(wrap.isSelected());
+      button(root, "Fit width").performClick();
+      assertFalse(editor.isWordwrap());
+      assertFalse(wrap.isSelected());
+      activity.onConfigurationChanged(activity.getResources().getConfiguration());
+      assertFalse(button(activity.getWindow().getDecorView(), "Wrap").isSelected());
     }
   }
 

@@ -74,7 +74,15 @@ final class RibbonPage extends HorizontalScrollView {
     fill.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
     fill.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
     fill.setCornerRadius(dp(5));
-    return new RippleDrawable(ColorStateList.valueOf((accent & 0xffffff) | 0x33000000), fill, null);
+    GradientDrawable selected = new GradientDrawable();
+    selected.setColor(blend(surface, accent, .25f));
+    selected.setStroke(dp(2), accent);
+    selected.setCornerRadius(dp(5));
+    StateListDrawable states = new StateListDrawable();
+    states.addState(new int[] {android.R.attr.state_selected}, selected);
+    states.addState(new int[0], fill);
+    return new RippleDrawable(
+        ColorStateList.valueOf((accent & 0xffffff) | 0x33000000), states, null);
   }
 
   private String shortLabel(Button button) {

@@ -1,9 +1,9 @@
-# Native release validation — v26.0913.006
+# Native release validation — v26.0913.007
 
-Package: `com.TechHurts.CodeFile`; versionCode: `9752006`; minimum Android API 24, target/compile API 34.
+Package: `com.TechHurts.CodeFile`; versionCode: `9752007`; minimum Android API 24, target/compile API 34.
 
 - `assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle`: passed.
-- 43 JUnit/Robolectric tests: passed, no failures or skips.
+- 44 JUnit/Robolectric tests: passed, no failures or skips.
 - 11 additional API endpoint checks: passed.
 - google-java-format 1.22.0 dry-run and Git whitespace checks: passed.
 - Checkstyle rejects excessive nested `if`, `for`, and `try` blocks; CI runs the check.
@@ -15,8 +15,9 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752006`; minimum Android API 2
 - Navigation opens inline with directly visible Symbols, Definition, References, Info, Table and Line actions; opening the tab creates no dialog. Service info is absent from Code and remains in Support.
 - Ribbon actions remain within their native layout at 320/360/411/600/840dp widths. Touch drags collapse and reopen the ribbon. Command content wider than the viewport is reachable through horizontal scrolling. Logs are in Support.
 - Simulated horizontal hinge: code above, full controls pane below. Vertical hinge and tablet layouts also pass; normal tablets now place the ribbon across the top.
+- Wrap uses an accent-filled selected state while enabled and exposes On/Off to accessibility. Fit width adjusts text size within 8–40sp and preserves wrapping; regression checks cover both states and configuration refresh.
 - Native pinch zoom and visible wrapping preserve source text and source line numbers.
-- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile’s icon is 40dp (twice its previous size), and the top bar has no surrounding outline. Individual tabs keep their accent outlines. The icon sits left of File without the CodeFile text label; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
+- Settings category tabs switch independently scrolling pages; native viewer and Settings bitmaps visually inspected. CodeFile’s icon is 40dp (twice its previous size), and the top bar has no surrounding outline. Individual tabs keep accent top and side outlines, with no bottom border or underline. The icon sits left of File without the CodeFile text label; the Settings gear sits right of Code. Settings Save remains outside its scrolling content.
 - Selection swatch opens a PopupWindow containing native SeekBars and a hex EditText with no preset colors; it no longer creates a dialog. Clear colors is directly enabled for intersecting colored selections. Tests apply and remove a multi-line highlight, preserve source text and retain annotations through configuration refresh. Range tests cover overlapping colors and partial removal; native highlight bitmap inspected.
 - Incoming ClipData text is accepted with its suggested filename. File → Save launches ACTION_CREATE_DOCUMENT and writes exact UTF-8 text through the content resolver.
 - PDF tests clip annotation spans to exact selected text, paginate the native text layout, check rendered highlight color pixels, and verify application/pdf provider MIME. The same page drawing code feeds Android PdfDocument canvases. Android PdfDocument’s file writer is not implemented by this Robolectric version; actual PDF serialization and installed share targets remain device checks.
@@ -32,7 +33,7 @@ Package: `com.TechHurts.CodeFile`; versionCode: `9752006`; minimum Android API 2
 Release SHA-256:
 
 ```
-61ecbe53205321c656eda01532fa390531114445cece2fbd9ae658fa6bca902b
+03006c1d31a7b39763f4e4e04f1486aea505ca3881156462ec08ad153b0da154
 ```
 
 The installed `android-dev` skill's Java guidance informed the review. Ribbon geometry, fold geometry, table rendering, asynchronous search bindings, and data formatting are separate classes. Background formatter/table operations use named helpers to avoid nested callback chains.
