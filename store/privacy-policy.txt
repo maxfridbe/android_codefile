@@ -1,0 +1,22 @@
+CodeFile Privacy Policy
+Effective date: September 13, 2026
+
+CodeFile (com.TechHurts.CodeFile) is a native Android code and text viewer.
+
+Files and local processing
+Files you open, paste or receive through Android sharing are processed on your device. Syntax highlighting, formatting, Markdown preview, JSON trees, diffs, PDF creation and local code navigation do not upload your files. CodeFile has no advertising, analytics SDK, tracking identifier or developer-operated account system.
+
+Optional AI analysis
+When you explicitly press Send in an analysis preview, CodeFile sends the displayed snippet and your instructions to the API endpoint you configured, together with the selected model and any saved API credential. The endpoint is shown before sending. This can be OpenRouter or a compatible server, including a local server. That provider controls its own processing, retention and privacy terms. CodeFile does not automatically send documents for analysis. Public endpoints require HTTPS. HTTP is allowed only for local-network/loopback endpoints and is not encrypted.
+
+Sharing and links
+Android sharing and Save send or write only what you choose. The receiving app, document provider or destination controls its own copy. Opening a Markdown link may hand the URL to another app; CodeFile does not preload remote Markdown images.
+
+Local storage and retention
+Preferences and endpoint-specific API credentials remain in app-private storage. Credentials are encrypted with an Android Keystore key and can be removed by saving an empty key for that endpoint. Open documents, navigation indexes, annotations and analysis responses are kept in the session. Export and debug-log files are created in the private cache; old shared files are cleaned up on a later app launch after 24 hours. Android may clear cache earlier. Files you explicitly save outside the app remain until you remove them. Android backup and device-transfer extraction of app data are disabled.
+
+Diagnostics
+CodeFile stores bounded local diagnostic logs with operation names, timing, byte counts, Android/device information and error classes. Document text, prompts, responses, endpoint URLs and credentials are excluded. Logs are not uploaded automatically. Support > Log .gz shares logs only when you request it. Clearing Android app storage or uninstalling removes local preferences, credentials, cache and diagnostics; external files and copies held by recipients/providers are unaffected.
+
+Contact
+Use the developer support contact shown on CodeFile's store listing for privacy questions. No account is required to use the local viewer. This policy will be updated when data practices change.

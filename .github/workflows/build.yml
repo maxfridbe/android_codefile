@@ -11,7 +11,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: docker
-          tags: androidbase-builder:latest
+          tags: codefile-builder:latest
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -25,11 +25,11 @@ jobs:
             printf '%s' "$KEYSTORE_B64" | base64 -d > keystore/release.keystore
             printf '%s\n' "$KEYSTORE_PROPERTIES" > keystore/keystore.properties
           fi
-      - run: CONTAINER_ENGINE=docker SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitTest checkNativeStyle' ./build.sh codefile
+      - run: CONTAINER_ENGINE=docker SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease bundleRelease lint testDebugUnitTest checkNativeStyle' ./build.sh codefile
       - run: python3 scripts/audit-native-apk.py output/codefile/codefile-$(cat VERSION)-release.apk
       - run: ./scripts/test-java.sh
       - uses: actions/upload-artifact@v4
         with:
           name: CodeFile-APKs
-          path: output/codefile/*.apk
+          path: output/codefile/*
           if-no-files-found: error

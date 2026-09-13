@@ -9,16 +9,16 @@ val sharedKeystore = findProperty("appKeystoreFile") as String?
 
 android {
     namespace = "com.TechHurts.CodeFile"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.TechHurts.CodeFile"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         // Injected by build.sh from git (commit count / git describe);
         // the defaults only apply to builds outside the build system.
-        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752012
-        versionName = findProperty("appVersionName") as String? ?: "v26.0913.012"
+        versionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 9752013
+        versionName = findProperty("appVersionName") as String? ?: "v26.0913.013"
     }
 
     if (sharedKeystore != null) {
@@ -33,6 +33,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (sharedKeystore != null) {
                 signingConfig = signingConfigs.getByName("shared")

@@ -14,26 +14,19 @@ import org.json.*;
 final class NativeSyntax {
   private JSONObject catalog;
   private boolean loaded;
+  private Context context;
+  private final Set<String> themes = new HashSet<>();
 
   void load(Context context) throws Exception {
+    load(context, "darcula");
+  }
+
+  void load(Context context, String theme) throws Exception {
     if (loaded) return;
     FileProviderRegistry.getInstance().addFileProvider(new AssetsFileResolver(context.getAssets()));
-    for (String theme : new String[] {"darcula", "quietlight", "abyss", "solarized_drak"}) {
-      String path = "textmate/" + theme + ".json";
-      ThemeRegistry.getInstance()
-          .loadTheme(
-              new ThemeModel(
-                  IThemeSource.fromInputStream(context.getAssets().open(path), path, null), theme));
-    }
-    for (AppTheme theme : AppTheme.ALL) {
-      String path = "textmate/" + theme.syntax + ".json";
-      ThemeRegistry.getInstance()
-          .loadTheme(
-              new ThemeModel(
-                  IThemeSource.fromInputStream(context.getAssets().open(path), path, null),
-                  theme.syntax));
-    }
-    ThemeRegistry.getInstance().setTheme("darcula");
+    this.context = context.getApplicationContext();
+    loadTheme(theme);
+    ThemeRegistry.getInstance().setTheme(theme);
     GrammarRegistry.getInstance().loadGrammars("textmate/languages.json");
     try (InputStream in = context.getAssets().open("languages.json");
         ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -43,6 +36,20 @@ final class NativeSyntax {
       catalog = new JSONObject(out.toString("UTF-8"));
     }
     loaded = true;
+  }
+
+  private void loadTheme(String theme) throws Exception {
+    if (themes.contains(theme)) return;
+    String path = "textmate/" + theme + ".json";
+    try (InputStream input = context.getAssets().open(path)) {
+      ThemeRegistry.getInstance()
+          .loadTheme(new ThemeModel(IThemeSource.fromInputStream(input, path, null), theme));
+    }
+    themes.add(theme);
+  }
+
+  int loadedThemeCount() {
+    return themes.size();
   }
 
   List<String> names() {
@@ -76,6 +83,7 @@ final class NativeSyntax {
   }
 
   void apply(CodeEditor editor, String language, String theme) throws Exception {
+    loadTheme(theme);
     ThemeRegistry.getInstance().setTheme(theme);
     editor.setColorScheme(TextMateColorScheme.create(ThemeRegistry.getInstance()));
     JSONObject item =

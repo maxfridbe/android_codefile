@@ -83,6 +83,7 @@ public class MainActivity extends Activity {
   private Button analysisSend;
   private NativeLsp lsp;
   private boolean navigation, connecting, syntaxReady;
+  private long startupStarted;
   private static final int OPEN = 1, SAVE = 2, LIMIT = 8 * 1024 * 1024;
 
   static final class Document {
@@ -108,41 +109,73 @@ public class MainActivity extends Activity {
 
   @Override
   public void onCreate(Bundle state) {
+    startupStarted = SystemClock.elapsedRealtime();
     super.onCreate(state);
     prefs = getSharedPreferences("native-settings", MODE_PRIVATE);
     log = new DebugLog(this);
     log.event("native.create");
-    nerd = Typeface.createFromAsset(getAssets(), "fonts/JetBrainsMono.ttf");
+    nerd = FontCache.get(this, "fonts/JetBrainsMono.ttf");
     palette();
     buildScreen();
+    root.getViewTreeObserver()
+        .addOnDrawListener(
+            new android.view.ViewTreeObserver.OnDrawListener() {
+              private boolean reported;
+
+              public void onDraw() {
+                if (reported) return;
+                reported = true;
+                long elapsed = SystemClock.elapsedRealtime() - startupStarted;
+                root.post(
+                    () -> {
+                      root.getViewTreeObserver().removeOnDrawListener(this);
+                      log.event("startup.first_frame_ms=" + elapsed);
+                    });
+              }
+            });
+    String initialTheme = syntaxTheme();
     io.execute(
         () -> {
           try {
-            syntax.load(this);
+            syntax.load(this, initialTheme);
             ui(
                 () -> {
                   syntaxReady = true;
                   for (Document d : documents) d.language = syntax.detect(d.name);
-                  render();
+                  if (current != null) {
+                    try {
+                      syntax.apply(editor, current.language, syntaxTheme());
+                      configureEditor(editor);
+                      updateFormatTabs();
+                      startLanguageService();
+                    } catch (Exception failure) {
+                      error("Syntax: " + message(failure));
+                    }
+                  }
+                  log.event(
+                      "startup.syntax_ready_ms="
+                          + (SystemClock.elapsedRealtime() - startupStarted));
+                  reportFullyDrawn();
                 });
           } catch (Exception e) {
             error("Syntax initialization failed: " + e.getClass().getSimpleName());
           }
         });
-    addDocument(
-        "Welcome.java",
-        "/** CodeFile — native Android source viewer. */\n"
-            + "class Welcome {\n"
-            + "    static String inspect(String code) {\n"
-            + "        // Select code and share only the context you choose.\n"
-            + "        return code.trim();\n"
-            + "    }\n\n"
-            + "    public static void main(String[] args) {\n"
-            + "        System.out.println(inspect(\"Hello, native Android\"));\n"
-            + "    }\n"
-            + "}\n",
-        "UTF-8",
-        "");
+    if (!hasIncomingDocument(getIntent()))
+      addDocument(
+          "Welcome.java",
+          "/** CodeFile — native Android source viewer. */\n"
+              + "class Welcome {\n"
+              + "    static String inspect(String code) {\n"
+              + "        // Select code and share only the context you choose.\n"
+              + "        return code.trim();\n"
+              + "    }\n\n"
+              + "    public static void main(String[] args) {\n"
+              + "        System.out.println(inspect(\"Hello, native Android\"));\n"
+              + "    }\n"
+              + "}\n",
+          "UTF-8",
+          "");
     handleIntent(getIntent());
     try {
       windowTracker = new WindowInfoTrackerCallbackAdapter(WindowInfoTracker.getOrCreate(this));
@@ -157,6 +190,15 @@ public class MainActivity extends Activity {
             for (File file : files)
               if (System.currentTimeMillis() - file.lastModified() > 86400000) file.delete();
         });
+  }
+
+  private static boolean hasIncomingDocument(Intent intent) {
+    if (intent == null) return false;
+    return intent.getData() != null
+        || intent.getClipData() != null
+        || intent.hasExtra(Intent.EXTRA_STREAM)
+        || intent.hasExtra(Intent.EXTRA_TEXT)
+        || intent.hasExtra(Intent.EXTRA_PROCESS_TEXT);
   }
 
   private void ui(Runnable task) {
@@ -186,8 +228,8 @@ public class MainActivity extends Activity {
     codeFont =
         prefs.getString("font", "JetBrains").equals("System")
             ? Typeface.MONOSPACE
-            : Typeface.createFromAsset(
-                getAssets(),
+            : FontCache.get(
+                this,
                 "fonts/"
                     + (prefs.getString("font", "JetBrains").equals("Fira")
                         ? "FiraCode"
@@ -301,7 +343,7 @@ public class MainActivity extends Activity {
       {"Files", "Sharing"},
       {"Reading", "Zoom"},
       {"Source", "Comparison"},
-      {"Diagnostics", "About"},
+      {"Diagnostics", "About", "Privacy"},
       {},
       {"Browse", "Inspect"},
       {"Markdown"},
@@ -312,7 +354,7 @@ public class MainActivity extends Activity {
       {{0, 1, 5}, {4, 2, 3}},
       {{0, 1}, {4, 3, 2}},
       {{1, 0, 2}, {3}},
-      {{0, 1, 2}, {3, 4, 5}},
+      {{0, 1, 2}, {3, 4, 5}, {6}},
       {},
       {{0, 1, 2}, {4, 3}},
       {{0}},
@@ -467,7 +509,10 @@ public class MainActivity extends Activity {
         button(
             "Save",
             0xf0193,
-            () -> actions.save(current.name, current.formatted ? current.text() : current.raw)));
+            () -> {
+              if (current != null)
+                actions.save(current.name, current.formatted ? current.text() : current.raw);
+            }));
     ribbonPage(fileActions);
     documentRow = row();
     documentRow.setTag("fileStrip");
@@ -553,9 +598,10 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.012")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.013")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
+    support.addView(button("Privacy", 0xf0498, this::showPrivacy));
     ribbonPage(support);
     RibbonPage searchPage =
         new RibbonPage(
@@ -609,15 +655,19 @@ public class MainActivity extends Activity {
                 .apply();
         });
     setContentView(root);
-    root.setOnApplyWindowInsetsListener(
+    androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+    androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(
+        root,
         (v, insets) -> {
-          root.setPadding(
-              dp(4) + insets.getSystemWindowInsetLeft(),
-              insets.getSystemWindowInsetTop(),
-              dp(4) + insets.getSystemWindowInsetRight(),
-              dp(4) + insets.getSystemWindowInsetBottom());
-          return insets.consumeSystemWindowInsets();
+          androidx.core.graphics.Insets bars =
+              insets.getInsets(
+                  androidx.core.view.WindowInsetsCompat.Type.systemBars()
+                      | androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+                      | androidx.core.view.WindowInsetsCompat.Type.ime());
+          v.setPadding(dp(4) + bars.left, bars.top, dp(4) + bars.right, dp(4) + bars.bottom);
+          return insets;
         });
+    androidx.core.view.ViewCompat.requestApplyInsets(root);
     configureEditor(editor);
     refreshTabs();
   }
@@ -754,7 +804,7 @@ public class MainActivity extends Activity {
         .setHighlights(current.formatted ? current.previewHighlights : current.originalHighlights);
     editor.setText(current.text());
     try {
-      if (syntaxReady) syntax.apply(editor, current.language, syntaxTheme());
+      if (syntaxReady && current != null) syntax.apply(editor, current.language, syntaxTheme());
     } catch (Exception e) {
       log.event("syntax.failed class=" + e.getClass().getSimpleName());
       editor.setEditorLanguage(null);
@@ -840,6 +890,7 @@ public class MainActivity extends Activity {
   }
 
   private void chooseLanguage() {
+    if (current == null) return;
     List<String> names = syntax.names();
     new AlertDialog.Builder(this)
         .setTitle("Syntax language")
@@ -1472,7 +1523,7 @@ public class MainActivity extends Activity {
   private void applyAppearance(View settingsPage) {
     palette();
     try {
-      if (syntaxReady) syntax.apply(editor, current.language, syntaxTheme());
+      if (syntaxReady && current != null) syntax.apply(editor, current.language, syntaxTheme());
     } catch (Exception e) {
       log.event("theme.failed");
     }
@@ -1870,6 +1921,7 @@ public class MainActivity extends Activity {
   }
 
   private String selectedSnippet(boolean numbered) {
+    if (current == null) return "";
     int[] range = selectedLines();
     return SourceTools.snippet(
         current.text(),
@@ -2056,7 +2108,9 @@ public class MainActivity extends Activity {
     strip(content, buttons);
     content.addView(
         label(
-            "Analyze with "
+            "Only the snippet below and your instructions are sent when you press Send. "
+                + "Your chosen provider handles this data under its own privacy terms. "
+                + "Local HTTP is not encrypted.\nAnalyze with "
                 + prefs.getString("model", "anthropic/claude-sonnet-4.6")
                 + "\n"
                 + prefs.getString("endpoint", "https://openrouter.ai/api/v1/chat/completions"),
@@ -2101,6 +2155,14 @@ public class MainActivity extends Activity {
     dialog("Share code", scrolling(content));
   }
 
+  private void showPrivacy() {
+    try (InputStream input = getAssets().open("PRIVACY.txt")) {
+      showText("Privacy policy", new String(bytes(input, 65536), StandardCharsets.UTF_8));
+    } catch (IOException failure) {
+      error("Unable to open privacy policy");
+    }
+  }
+
   private void showText(String name, String text) {
     LinearLayout content = column();
     TextView body = label(text, 13, fg);
@@ -2142,7 +2204,7 @@ public class MainActivity extends Activity {
   }
 
   private void startLanguageService() {
-    if (current == null || current.original.length() > 1048576) return;
+    if (!syntaxReady || current == null || current.original.length() > 1048576) return;
     if (lsp != null && languageDocument == current && languageId.equals(current.language)) return;
     stopNavigation();
     Document doc = current;

@@ -908,6 +908,37 @@ public class NativeActivityTest {
   }
 
   @Test
+  public void sharedFileStartupSkipsWelcomeAndKeepsSelectionWhenSyntaxArrives() throws Exception {
+    Intent intent =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TITLE, "test.java")
+            .putExtra(Intent.EXTRA_TEXT, "class Test {\n  int value;\n}\n");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, intent).setup()) {
+      MainActivity activity = controller.get();
+      java.lang.reflect.Field docs = MainActivity.class.getDeclaredField("documents");
+      docs.setAccessible(true);
+      assertEquals(1, ((java.util.List<?>) docs.get(activity)).size());
+      CodeEditor editor = find(activity.getWindow().getDecorView(), CodeEditor.class);
+      editor.setSelection(1, 3);
+      java.lang.reflect.Field ready = MainActivity.class.getDeclaredField("syntaxReady");
+      ready.setAccessible(true);
+      for (int i = 0; i < 200 && !ready.getBoolean(activity); i++) {
+        shadowOf(Looper.getMainLooper()).idle();
+        Thread.sleep(20);
+      }
+      assertTrue(ready.getBoolean(activity));
+      assertEquals(1, editor.getCursor().getLeftLine());
+      assertEquals(3, editor.getCursor().getLeftColumn());
+      assertSame(
+          FontCache.get(activity, "fonts/JetBrainsMono.ttf"),
+          FontCache.get(activity, "fonts/JetBrainsMono.ttf"));
+      assertNotNull(button(activity.getWindow().getDecorView(), "Privacy"));
+    }
+  }
+
+  @Test
   public void formatRibbonsFollowTheCurrentFile() throws Exception {
     Intent intent =
         new Intent(Intent.ACTION_SEND)

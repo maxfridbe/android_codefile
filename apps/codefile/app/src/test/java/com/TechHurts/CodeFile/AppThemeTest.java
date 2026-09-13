@@ -17,6 +17,7 @@ public class AppThemeTest {
   public void everyPaletteLoadsNativeSyntaxAndHasReadableText() throws Exception {
     NativeSyntax syntax = new NativeSyntax();
     syntax.load(RuntimeEnvironment.getApplication());
+    assertEquals("Only the startup theme is loaded eagerly", 1, syntax.loadedThemeCount());
     CodeEditor editor = new CodeEditor(RuntimeEnvironment.getApplication());
     int lights = 0, darks = 0;
     try {

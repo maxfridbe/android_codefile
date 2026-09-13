@@ -17,7 +17,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-IMAGE="${IMAGE:-androidbase-builder}"
+IMAGE="${IMAGE:-codefile-builder}"
 GRADLE_CACHE_VOLUME="${GRADLE_CACHE_VOLUME:-androidbase-gradle-cache}"
 BUILD_TASK="${BUILD_TASK:-assembleDebug}"
 
@@ -66,6 +66,10 @@ KEYSTORE_FILE="$KEYSTORE_DIR/release.keystore"
 KEYSTORE_PROPS="$KEYSTORE_DIR/keystore.properties"
 
 if [ ! -f "$KEYSTORE_FILE" ] || [ ! -f "$KEYSTORE_PROPS" ]; then
+    if [ "${REQUIRE_EXISTING_KEYSTORE:-0}" = "1" ]; then
+        echo "error: store release requires the existing private signing key" >&2
+        exit 1
+    fi
     echo "==> No keystore found; generating one in $KEYSTORE_DIR"
     mkdir -p "$KEYSTORE_DIR"
     # Finite read (a bare `tr </dev/urandom | head` dies of SIGPIPE under pipefail)
@@ -114,8 +118,16 @@ for app in "${APPS[@]}"; do
         # app-debug.apk -> <app>-<version>-debug.apk
         cp -v "$apk" "output/$app/${app}-${VERSION_NAME}-$(basename "$apk" | sed 's/^app-//')"
     done < <(find "$dir" -path '*/build/outputs/apk/*' -name '*.apk')
+    while IFS= read -r bundle; do
+        found=1
+        cp -v "$bundle" "output/$app/${app}-${VERSION_NAME}-release.aab"
+    done < <(find "$dir" -path '*/build/outputs/bundle/release/*' -name '*.aab')
+    mapping="$dir/app/build/outputs/mapping/release/mapping.txt"
+    if [ -f "$mapping" ]; then
+        cp "$mapping" "output/$app/${app}-${VERSION_NAME}-mapping.txt"
+    fi
     if [ "$found" = "0" ]; then
-        echo "error: no APK produced for $app" >&2
+        echo "error: no APK or App Bundle produced for $app" >&2
         exit 1
     fi
 done

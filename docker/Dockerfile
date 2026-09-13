@@ -1,7 +1,7 @@
 # Shared Android builder image for every app under apps/.
 # All compilation happens inside this container; the host never needs
 # a JDK, Gradle, or the Android SDK.
-FROM gradle:8.7.0-jdk17
+FROM docker.io/library/gradle:8.11.1-jdk17
 
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV ANDROID_HOME=/opt/android-sdk
@@ -21,8 +21,8 @@ RUN wget -q "https://dl.google.com/android/repository/commandlinetools-linux-${C
 
 RUN yes | sdkmanager --licenses >/dev/null
 
-ARG ANDROID_PLATFORM="android-34"
-ARG BUILD_TOOLS="34.0.0"
+ARG ANDROID_PLATFORM="android-36"
+ARG BUILD_TOOLS="35.0.0"
 RUN sdkmanager \
     "platform-tools" \
     "platforms;${ANDROID_PLATFORM}" \

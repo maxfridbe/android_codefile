@@ -11,6 +11,8 @@ import java.util.zip.GZIPOutputStream;
 /** Bounded, content-free diagnostics. Never pass documents, keys, or API payloads here. */
 final class DebugLog {
   private final File file;
+  private static final java.util.concurrent.ExecutorService WRITER =
+      java.util.concurrent.Executors.newSingleThreadExecutor();
   private final String header;
 
   DebugLog(Context context) {
@@ -38,7 +40,11 @@ final class DebugLog {
             + "Source, URLs, prompts, responses, and credentials are omitted.\n\n";
   }
 
-  synchronized void event(String event) {
+  void event(String event) {
+    WRITER.execute(() -> append(event));
+  }
+
+  private synchronized void append(String event) {
     try {
       if (file.length() > 128 * 1024) {
         File old = new File(file.getParentFile(), "diagnostics.previous.log");
@@ -54,7 +60,16 @@ final class DebugLog {
     }
   }
 
-  synchronized File gzip(Context context) throws IOException {
+  File gzip(Context context) throws IOException {
+    try {
+      WRITER.submit(() -> {}).get(5, java.util.concurrent.TimeUnit.SECONDS);
+    } catch (Exception failure) {
+      throw new IOException("Diagnostics are busy; try again", failure);
+    }
+    return snapshot(context);
+  }
+
+  private synchronized File snapshot(Context context) throws IOException {
     File dir = new File(context.getCacheDir(), "shares");
     dir.mkdirs();
     File result = new File(dir, UUID.randomUUID() + "_CodeFile-debug.log.gz");

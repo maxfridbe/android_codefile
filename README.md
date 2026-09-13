@@ -1,6 +1,6 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0913.012`
+`com.TechHurts.CodeFile` · `v26.0913.013`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
@@ -50,7 +50,7 @@ Only the previewed snippet is sent when **Send preview to API** or the selection
 
 ## Build
 
-Requires Python 3 and Docker/Podman. No Node/npm or browser tooling is required. AndroidBase supplies JDK 17, Gradle 8.7, SDK 34 and build-tools 34.0.0. Native library versions are pinned in `apps/codefile/app/build.gradle.kts`.
+Requires Python 3 and Docker/Podman. No Node/npm or browser tooling is required. AndroidBase supplies JDK 17, Gradle 8.11.1, SDK 36 and build-tools 35.0.0. Native library versions are pinned in `apps/codefile/app/build.gradle.kts`.
 
 ```sh
 ./build.sh codefile
@@ -83,3 +83,9 @@ Native Java source is formatted with google-java-format 1.22.0. `checkNativeStyl
 YAML dependency: SnakeYAML Engine 2.9, Apache-2.0. The app composes data nodes and emits them without constructing arbitrary Java objects. Its license is bundled with Settings → About & diagnostics → Open-source licenses.
 
 Ribbon design references: [Microsoft command sizing and group collapse](https://learn.microsoft.com/en-us/office/dev/add-ins/design/add-in-commands) and the classic Word ribbon's large-primary/stacked-secondary hierarchy. Implemented with native Android Views; no desktop or browser control is embedded.
+
+## Startup and store handoff
+
+The active syntax theme loads on demand, font assets are cached per process, incoming shares skip the welcome document, diagnostic writes run off the main thread, and syntax startup updates the existing editor without resetting its content/selection. Navigation initializes once the language is known. Support logs include first-frame and syntax-ready timings. Use `scripts/benchmark-startup.sh` on a device for before/after cold-start measurements; no device speedup percentage is claimed.
+
+The isolated `codefile-builder` targets API 36 and generates signed APK/AAB artifacts plus R8 mappings. Run `SKIP_IMAGE_BUILD=1 scripts/release-store.sh` after building that image; the script requires the existing signing key. See [store handoff](store/RELEASE.md), [listing copy](store/listing.md), [privacy policy](store/privacy-policy.txt), and [Data safety worksheet](store/data-safety.md). A public policy URL, owner contact/Console declarations and installed-release device validation remain owner/device gates before publishing.
