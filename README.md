@@ -1,13 +1,13 @@
 # CodeFile — native Android
 
-`com.TechHurts.CodeFile` · `v26.0913.001`
+`com.TechHurts.CodeFile` · `v26.0913.002`
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
 ## Features
 
 - Responsive phone, tablet, split-screen and foldable layouts. The ribbon spans the top of normal phone/tablet windows; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
-- Office-style File / View / Code / Support ribbon with rounded, accent-outlined tabs, 112dp command groups, outlined primary tiles, two stacked secondary actions, separators and aligned group captions. Tabs and command groups scroll horizontally when they exceed the available width. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. CodeFile sits left of File; Settings sits right of Code. The filename row stays visible. Tapping the selected tab collapses the expanded ribbon; finger displacement controls its animation, avoiding feedback from editor layout changes.
+- Office-style File / Search / View / Code / Support ribbon with rounded, accent-outlined tabs, 112dp command groups, outlined primary tiles, two stacked secondary actions, separators and aligned group captions. Tabs and command groups scroll horizontally when they exceed the available width. Reading scroll collapses the ribbon; scrolling back or tapping a tab expands it. Resting folds put the entire controls pane below a horizontal hinge and the code above it. CodeFile sits left of File; Settings sits right of Code. The filename row stays visible. Tapping the selected tab collapses the expanded ribbon; finger displacement controls its animation, avoiding feedback from editor layout changes.
 - Read-only, selectable code with native scrolling, line numbers, wrapping, bracket matching, block guides, current-line highlighting, adjustable font/spacing, and whitespace display.
 - 68 bundled language definitions / 78 TextMate grammars, including Java, Kotlin, JS/TS/JSX/TSX, Python, C/C++, C#, Rust, Go, Swift, PHP, HTML/XML, CSS, SQL, shell, Markdown, JSON/YAML/TOML and more. Manual language selection; unknown formats use plain text.
 - System document picker, multiple open files, paste, VIEW/EDIT, SEND/SEND_MULTIPLE, and PROCESS_TEXT intents. Original documents are never overwritten. Export creates a UTF-8 copy.
@@ -15,7 +15,7 @@ CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **
 - Native YAML node formatting retains comments, scalar styles, aliases, custom tags and multiple documents. Inline-commented flow collections retain flow style. CSV/TSV formatting preserves field values; the Code → Navigation → Table action supports comma, tab, semicolon and pipe delimiters with quoted/multiline fields. Table parsing is off the UI thread. XML pretty printing preserves mixed content and rejects DTDs/external entities. JSON Lines compaction preserves numeric tokens. TXT/log/INI/properties/TOML/Markdown keep meaningful whitespace and normalize line endings only.
 - Native unified / side-by-side diff lists, line numbers, changed-text highlights, collapsed unchanged regions, previous/next change, patch export, sharing, and analysis. Both panes share row positions and vertical scrolling; long lines wrap.
 - Native settings, inline search, line navigation, standard Copy selection toolbar, selection-based snippet ranges, Markdown fencing, clipboard, share chooser, and AI responses. All app action buttons use embedded Nerd Font glyphs.
-- Inline search in the File ribbon with live native match highlighting, match counts, next/previous, case matching, regex validation, and persistent yellow/cyan/pink/green highlight colors.
+- Inline search in its own Search ribbon with live native match highlighting, match counts, next/previous, case matching, regex validation, and ordinary match highlighting without color controls.
 - Tabbed Settings pages with compact value rows and a font preview with immediate theme application; changing a theme keeps the same editor and document. Fourteen light/dark palettes plus system matching: Carbon, Midnight, Dracula, Forest, Paper, High contrast, Nord dark/light, Catppuccin Mocha/Latte, Solarized dark/light, and Rosé Pine/Dawn. Theme accents color ribbon borders and code guides. Embedded JetBrains Mono and Fira Code Nerd Fonts. User-supplied adaptive logo, legacy fallback, and monochrome themed icon.
 - Document/language/navigation status is consolidated into the horizontally scrollable bottom status bar. The filename remains above the editor.
 - Support ribbon includes Log .gz, service details, licenses and diagnostics. Native gzip diagnostic-log sharing with `ACTION_SEND`, `application/gzip`, a read-only content provider, and temporary URI permission. Reports omit source, prompts, responses, endpoint URLs, and credentials.
@@ -24,7 +24,9 @@ CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **
 
 Navigation starts automatically for each document; there is no language-server setup in Settings. Java uses an embedded JavaParser AST and symbol resolver for same-file declarations, references, symbols and hover. Other languages use a local lexical index. This does not provide project-wide semantic resolution or a full compiler for every language. Documents stay on the device during navigation.
 
-Press a visible line number and slowly drag to select complete lines in either direction; dragging near the edge scrolls the document. Releasing opens a selection ribbon with Share, Copy, Export and Ask LLM. The analysis dialog previews the selected snippet before sending it. The native line-number gutter pans with unwrapped text and returns when panning back.
+Press a visible line number and slowly drag to select complete lines in either direction; dragging near the edge scrolls the document. Releasing opens a selection ribbon with Share, Copy, Export and Ask LLM. The analysis dialog previews the selected snippet before sending it.
+
+Both the standard text-selection toolbar and the line-selection ribbon offer a colored highlight swatch. Tap it for a native RGB/hex picker, presets, Apply highlight or Remove highlight. Highlight annotations follow exact selected ranges across wrapping, panning and zoom; overlapping colors replace only the overlapping range. They remain with each open document during the session and do not alter exported source. Original and formatted previews keep separate annotations; regenerating a changed preview clears its old annotations. The native line-number gutter pans with unwrapped text and returns when panning back.
 
 ## OpenRouter and local APIs
 

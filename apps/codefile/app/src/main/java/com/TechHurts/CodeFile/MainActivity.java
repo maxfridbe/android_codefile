@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
   private Button ribbonToggle;
   private AlertDialog settingsDialog;
   private String lastSearchTerm = "";
+  private final List<Button> highlightSwatches = new ArrayList<>();
   private NativeSearch inlineSearch;
   private EditText searchQuery;
   private final List<View> ribbonPages = new ArrayList<>();
@@ -87,6 +88,8 @@ public class MainActivity extends Activity {
     String language, preview;
     String[] labels;
     boolean formatted;
+    final TextHighlights originalHighlights = new TextHighlights(),
+        previewHighlights = new TextHighlights();
 
     Document(String name, String text, String encoding, String uri) {
       this.name = name;
@@ -297,6 +300,7 @@ public class MainActivity extends Activity {
       {"Reading", "Zoom"},
       {"Source", "Navigation"},
       {"Diagnostics", "About"},
+      {},
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
@@ -304,6 +308,7 @@ public class MainActivity extends Activity {
       {{0, 1, 2}, {5, 4, 3}},
       {{1, 0, 2}, {3, 4, 5}},
       {{0, 1, 2}, {3, 4, 5}},
+      {},
       {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
@@ -324,8 +329,8 @@ public class MainActivity extends Activity {
 
   private void selectRibbon(int index) {
     ribbonTab = index;
-    for (int i = 0; i < ribbonTabButtons.size(); i++)
-      ribbonTabButtons.get(i).setSelected(i == index);
+    for (RibbonTab tab : ribbonTabButtons)
+      tab.setSelected(Integer.valueOf(index).equals(tab.getTag()));
     setRibbonCollapsed(false);
     for (int i = 0; i < ribbonPages.size(); i++)
       ribbonPages.get(i).setVisibility(i == index ? View.VISIBLE : View.GONE);
@@ -399,24 +404,26 @@ public class MainActivity extends Activity {
     appName.setSingleLine(true);
     identity.addView(appName, new LinearLayout.LayoutParams(-2, -2));
     ribbonTabs.addView(identity, new LinearLayout.LayoutParams(dp(78), dp(40)));
-    String[] groups = {"File", "View", "Code", "Support"};
-    int[] icons = {0xf0224, 0xf06d0, 0xf0174, 0xf0625};
+    String[] groups = {"File", "Search", "View", "Code", "Support"};
+    int[] pageIndices = {0, 4, 1, 2, 3};
+    int[] icons = {0xf0224, 0xf0349, 0xf06d0, 0xf0174, 0xf0625};
     ribbonTabButtons.clear();
     for (int i = 0; i < groups.length; i++) {
-      final int index = i;
+      final int index = pageIndices[i];
       RibbonTab tabButton = new RibbonTab(this);
       tabButton.setText(iconText(icons[i], groups[i]));
       tabButton.setTextSize(12);
       tabButton.setContentDescription(groups[i]);
       tabButton.setOnClickListener(v -> tapRibbon(index));
       tabButton.setColors(fg, muted, accent, panel);
-      tabButton.setSelected(i == ribbonTab);
+      tabButton.setTag(index);
+      tabButton.setSelected(index == ribbonTab);
       ribbonTabButtons.add(tabButton);
       LinearLayout.LayoutParams tabLayout =
-          new LinearLayout.LayoutParams(dp(i == 3 ? 84 : 66), dp(40));
+          new LinearLayout.LayoutParams(dp(i == 4 ? 84 : i == 1 ? 78 : 66), dp(40));
       tabLayout.setMargins(dp(1), dp(2), dp(1), 0);
       ribbonTabs.addView(tabButton, tabLayout);
-      if (i == 2) ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
+      if (i == 3) ribbonTabs.addView(quickAction("Settings", 0xf0493, this::settings));
     }
     ribbonToggle =
         quickAction("Collapse ribbon", 0xf0143, () -> setRibbonCollapsed(!ribbonCollapsed));
@@ -521,7 +528,7 @@ public class MainActivity extends Activity {
     statusScroll.setHorizontalScrollBarEnabled(false);
     statusScroll.addView(status);
     reader.addView(statusScroll);
-    ((RibbonPage) ribbonPages.get(0)).prependPanel(buildInlineSearch(), 316);
+
     LinearLayout support = row();
     support.addView(button("Log .gz", 0xf00e4, actions::shareDebugLog));
     support.addView(
@@ -535,10 +542,23 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.001")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.002")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     ribbonPage(support);
+    RibbonPage searchPage =
+        new RibbonPage(this, new String[0], Collections.emptyList(), new int[0][]);
+    searchPage.prependPanel(buildInlineSearch(), 316);
+    searchPage.setColors(panel, fg, muted, accent);
+    ribbonPages.add(searchPage);
+    ribbonBody.addView(searchPage, new LinearLayout.LayoutParams(-1, -2));
+    searchPage.setVisibility(ribbonTab == 4 ? View.VISIBLE : View.GONE);
+    highlightSwatches.clear();
+    EditorTextActionWindow selectionToolbar = editor.getComponent(EditorTextActionWindow.class);
+    selectionToolbar
+        .getView()
+        .addView(highlightSwatch(), new LinearLayout.LayoutParams(dp(48), dp(48)));
+
     editor.subscribeEvent(SelectionChangeEvent.class, (event, unsubscribe) -> updateStatus());
     editor.subscribeEvent(
         ScrollEvent.class,
@@ -612,8 +632,7 @@ public class MainActivity extends Activity {
     scheme.setColor(EditorColorScheme.WHOLE_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_BACKGROUND, bg);
     scheme.setColor(EditorColorScheme.TEXT_NORMAL, fg);
-    scheme.setColor(
-        EditorColorScheme.MATCHED_TEXT_BACKGROUND, prefs.getInt("searchColor", 0x70ffcc33));
+    scheme.setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, 0x70ffcc33);
     scheme.setColor(EditorColorScheme.LINE_NUMBER, muted);
     scheme.setColor(EditorColorScheme.LINE_NUMBER_CURRENT, accent);
     scheme.setColor(EditorColorScheme.LINE_DIVIDER, (accent & 0xffffff) | 0x55000000);
@@ -684,6 +703,8 @@ public class MainActivity extends Activity {
   private void render() {
     if (editor == null || current == null) return;
     ((LineSelectionEditor) editor).clearLineSelection();
+    ((LineSelectionEditor) editor)
+        .setHighlights(current.formatted ? current.previewHighlights : current.originalHighlights);
     editor.setText(current.text());
     try {
       if (syntaxReady) syntax.apply(editor, current.language, syntaxTheme());
@@ -827,8 +848,8 @@ public class MainActivity extends Activity {
   }
 
   private void find() {
-    selectRibbon(0);
-    ((RibbonPage) ribbonPages.get(0)).smoothScrollTo(0, 0);
+    selectRibbon(4);
+    ((RibbonPage) ribbonPages.get(4)).smoothScrollTo(0, 0);
     searchQuery.requestFocus();
     ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
         .showSoftInput(searchQuery, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
@@ -868,12 +889,6 @@ public class MainActivity extends Activity {
         quickAction("Clear", 0xf0156, inlineSearch::clear),
         new LinearLayout.LayoutParams(dp(36), dp(44)));
     content.addView(queryRow);
-    LinearLayout colors = row();
-    addSearchColor(colors, "Yellow", 0x70ffcc33);
-    addSearchColor(colors, "Cyan", 0x7040cfff);
-    addSearchColor(colors, "Pink", 0x70ff66bb);
-    addSearchColor(colors, "Green", 0x707ad957);
-    options.addView(colors, new LinearLayout.LayoutParams(0, dp(40), 1));
     content.addView(options, new LinearLayout.LayoutParams(-1, dp(44)));
     summary.setPadding(dp(6), 0, 0, 0);
     content.addView(summary, new LinearLayout.LayoutParams(-1, dp(20)));
@@ -881,25 +896,86 @@ public class MainActivity extends Activity {
     return content;
   }
 
-  private void addSearchColor(LinearLayout colors, String name, int color) {
-    Button swatch =
-        button(
-            name + " highlight",
-            0xf0763,
-            () -> {
-              prefs.edit().putInt("searchColor", color).apply();
-              editor.getColorScheme().setColor(EditorColorScheme.MATCHED_TEXT_BACKGROUND, color);
-              editor.invalidate();
-            });
+  private Button highlightSwatch() {
+    Button swatch = button("Highlight color", 0xf0763, this::pickHighlightColor);
     swatch.setText(iconText(0xf0763, ""));
-    swatch.setTextSize(24);
     swatch.setPadding(0, 0, 0, 0);
-    swatch.setMinWidth(0);
-    swatch.setMinimumWidth(0);
-    swatch.setBackgroundColor(Color.TRANSPARENT);
-    swatch.setTag(color | 0xff000000);
-    swatch.setTextColor(color | 0xff000000);
-    colors.addView(swatch, new LinearLayout.LayoutParams(0, dp(48), 1));
+    swatch.setTextSize(22);
+    swatch.setTag("highlightSwatch");
+    highlightSwatches.add(swatch);
+    tintHighlightSwatch(swatch);
+    return swatch;
+  }
+
+  private void tintHighlightSwatch(Button swatch) {
+    int color = prefs.getInt("selectionHighlightColor", 0xffffcc33);
+    GradientDrawable box = new GradientDrawable();
+    box.setColor(color);
+    box.setCornerRadius(dp(6));
+    box.setStroke(dp(2), muted);
+    swatch.setBackground(new android.graphics.drawable.InsetDrawable(box, dp(8)));
+    swatch.setTextColor(
+        androidx.core.graphics.ColorUtils.calculateLuminance(color) > .4
+            ? Color.BLACK
+            : Color.WHITE);
+  }
+
+  private void pickHighlightColor() {
+    if (current == null || !editor.getCursor().isSelected()) {
+      toast("Select text to highlight");
+      return;
+    }
+    Document doc = current;
+    TextHighlights annotations = doc.formatted ? doc.previewHighlights : doc.originalHighlights;
+    int start = editor.getCursor().getLeft(), end = editor.getCursor().getRight();
+    LinearLayout content = column();
+    HighlightColorPicker picker =
+        new HighlightColorPicker(this, prefs.getInt("selectionHighlightColor", 0xffffcc33), fg);
+    content.addView(picker);
+    LinearLayout presets = row();
+    int[] colors = {0xffffcc33, 0xff40cfff, 0xffff66bb, 0xff7ad957};
+    String[] names = {"Yellow", "Cyan", "Pink", "Green"};
+    for (int i = 0; i < colors.length; i++) {
+      final int color = colors[i];
+      Button preset = button(names[i], 0xf0763, () -> picker.setColor(color));
+      preset.setText(iconText(0xf0763, ""));
+      preset.setTextColor(color);
+      presets.addView(preset, new LinearLayout.LayoutParams(0, dp(48), 1));
+    }
+    content.addView(presets);
+    content.addView(
+        label("Highlights stay with this open document. Source text is unchanged.", 11, muted));
+    final AlertDialog[] dialog = {null};
+    LinearLayout actions = row();
+    actions.addView(
+        button(
+            "Apply highlight",
+            0xf012c,
+            () -> {
+              try {
+                int color = picker.color();
+                annotations.apply(start, end, (color & 0xffffff) | 0x70000000);
+                prefs.edit().putInt("selectionHighlightColor", color).apply();
+                for (Button swatch : highlightSwatches) tintHighlightSwatch(swatch);
+                editor.setSelection(
+                    editor.getCursor().getRightLine(), editor.getCursor().getRightColumn());
+                editor.invalidate();
+                dialog[0].dismiss();
+              } catch (IllegalArgumentException error) {
+                toast(error.getMessage());
+              }
+            }));
+    actions.addView(
+        button(
+            "Remove highlight",
+            0xf0156,
+            () -> {
+              annotations.apply(start, end, 0);
+              editor.invalidate();
+              dialog[0].dismiss();
+            }));
+    content.addView(actions);
+    dialog[0] = dialog("Highlight color", scrolling(content));
   }
 
   private void goTo() {
@@ -995,6 +1071,7 @@ public class MainActivity extends Activity {
   }
 
   private void showFormatted(Document doc, String result, String[] labels) {
+    if (!result.equals(doc.preview)) doc.previewHighlights.clear();
     doc.preview = result;
     doc.labels = labels;
     doc.formatted = true;
@@ -1087,16 +1164,16 @@ public class MainActivity extends Activity {
 
   private void recolor(View v) {
     if (v instanceof CodeEditor) return;
+    if ("highlightSwatch".equals(v.getTag())) {
+      tintHighlightSwatch((Button) v);
+      return;
+    }
     if ("fileStrip".equals(v.getTag())) {
       GradientDrawable surface = new GradientDrawable();
       surface.setColor(panel);
       surface.setCornerRadii(new float[] {dp(8), dp(8), dp(8), dp(8), 0, 0, 0, 0});
       surface.setStroke(dp(1), (accent & 0xffffff) | 0x45000000);
       v.setBackground(surface);
-    }
-    if (v instanceof Button && v.getTag() instanceof Integer) {
-      ((Button) v).setTextColor((Integer) v.getTag());
-      return;
     }
     if (v instanceof RibbonPage) {
       ((RibbonPage) v).setColors(panel, fg, muted, accent);
@@ -1561,7 +1638,7 @@ public class MainActivity extends Activity {
   }
 
   private void showSelectionRibbon() {
-    if (ribbonPages.size() == 4) {
+    if (ribbonPages.size() == 5) {
       LinearLayout selection = row();
       selection.addView(button("Share", 0xf0497, this::shareCurrent));
       selection.addView(button("Copy", 0xf018f, () -> actions.copy(selectedSnippet(false))));
@@ -1579,10 +1656,17 @@ public class MainActivity extends Activity {
                 showSelectionRibbon();
               }));
       ribbonPage(selection);
+      LinearLayout colorPanel = column();
+      colorPanel.addView(highlightSwatch(), new LinearLayout.LayoutParams(dp(80), dp(92)));
+      TextView caption = label("Highlight", 10, muted);
+      caption.setPadding(0, 0, 0, 0);
+      caption.setGravity(Gravity.CENTER);
+      colorPanel.addView(caption, new LinearLayout.LayoutParams(dp(80), dp(20)));
+      ((RibbonPage) ribbonPages.get(5)).prependPanel(colorPanel, 80);
     }
-    ribbonTab = 4;
+    ribbonTab = 5;
     for (int i = 0; i < ribbonPages.size(); i++)
-      ribbonPages.get(i).setVisibility(i == 4 ? View.VISIBLE : View.GONE);
+      ribbonPages.get(i).setVisibility(i == 5 ? View.VISIBLE : View.GONE);
     for (RibbonTab tab : ribbonTabButtons) tab.setSelected(false);
     setRibbonCollapsed(false);
     int[] range = selectedLines();

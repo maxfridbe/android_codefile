@@ -8,6 +8,18 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 
 /** Gutter gestures select complete source lines immediately; no long-press timeout is involved. */
 final class LineSelectionEditor extends CodeEditor {
+  TextHighlights highlights;
+
+  @Override
+  protected io.github.rosemoe.sora.widget.EditorRenderer onCreateRenderer() {
+    return new HighlightRenderer(this);
+  }
+
+  void setHighlights(TextHighlights highlights) {
+    this.highlights = highlights;
+    invalidate();
+  }
+
   private boolean dragging;
   private float touchX, touchY, lastTouchY;
   private boolean ribbonGesture, multitouch;

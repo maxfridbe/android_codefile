@@ -552,7 +552,7 @@ public class NativeActivityTest {
   }
 
   @Test
-  public void searchHighlightsMatchesHandlesOptionsAndRemembersColor() throws Exception {
+  public void searchHasOwnRibbonAndNoColorControls() throws Exception {
     try (ActivityController<MainActivity> controller =
         Robolectric.buildActivity(MainActivity.class).setup()) {
       MainActivity activity = controller.get();
@@ -581,16 +581,13 @@ public class NativeActivityTest {
       assertTrue(editor.getCursor().isSelected());
       button(controls, "Match case").performClick();
       awaitMatches(editor, 1);
-      button(controls, "Pink highlight").performClick();
-      int color = 0x70ff66bb;
-      assertEquals(
-          color,
-          editor
-              .getColorScheme()
-              .getColor(
-                  io.github.rosemoe.sora.widget.schemes.EditorColorScheme.MATCHED_TEXT_BACKGROUND));
-      assertEquals(
-          color, activity.getSharedPreferences("native-settings", 0).getInt("searchColor", 0));
+      assertTrue(button(root, "Search").isSelected());
+      assertNull(button(controls, "Pink highlight"));
+      java.lang.reflect.Field pages = MainActivity.class.getDeclaredField("ribbonPages");
+      pages.setAccessible(true);
+      assertNull(
+          ((java.util.List<View>) pages.get(activity)).get(0).findViewWithTag("searchPanel"));
+      int color = 0x70ffcc33;
       button(controls, "Regular expression").performClick();
       query.setText("[");
       shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
@@ -606,6 +603,65 @@ public class NativeActivityTest {
               .getColorScheme()
               .getColor(
                   io.github.rosemoe.sora.widget.schemes.EditorColorScheme.MATCHED_TEXT_BACKGROUND));
+    }
+  }
+
+  @Test
+  @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+  @Config(sdk = 28, qualifiers = "w480dp-h1000dp")
+  public void selectedTextColorPickerAppliesPersistentNativeHighlight() throws Exception {
+    Intent intent =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(
+                Intent.EXTRA_TEXT,
+                "class Highlight {\n    int first = 1;\n    int second = 2;\n}\n");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, intent).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      LineSelectionEditor editor = find(root, LineSelectionEditor.class);
+      java.lang.reflect.Field ready = MainActivity.class.getDeclaredField("syntaxReady");
+      ready.setAccessible(true);
+      for (int i = 0; i < 100; i++) {
+        shadowOf(Looper.getMainLooper()).idle();
+        if (ready.getBoolean(activity)) break;
+        Thread.sleep(20);
+      }
+      root.measure(
+          View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
+          View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY));
+      root.layout(0, 0, 480, 1000);
+      String source = editor.getText().toString();
+      editor.setSelectionRegion(1, 0, 2, 8);
+      io.github.rosemoe.sora.widget.component.EditorTextActionWindow toolbar =
+          editor.getComponent(io.github.rosemoe.sora.widget.component.EditorTextActionWindow.class);
+      toolbar.displayWindow();
+      button(toolbar.getView(), "Highlight color").performClick();
+      AlertDialog picker = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      button(picker.getWindow().getDecorView(), "Pink").performClick();
+      button(picker.getWindow().getDecorView(), "Apply highlight").performClick();
+      assertEquals(1, editor.highlights.ranges().size());
+      assertEquals(0x70ff66bb, editor.highlights.ranges().get(0).color);
+      assertFalse(editor.getCursor().isSelected());
+      assertEquals(source, editor.getText().toString());
+      activity.onConfigurationChanged(activity.getResources().getConfiguration());
+      assertEquals(1, editor.highlights.ranges().size());
+      for (int i = 0; i < 30; i++) {
+        Thread.sleep(20);
+        shadowOf(Looper.getMainLooper()).idle();
+      }
+      android.graphics.Bitmap bitmap =
+          android.graphics.Bitmap.createBitmap(480, 1000, android.graphics.Bitmap.Config.ARGB_8888);
+      root.draw(new android.graphics.Canvas(bitmap));
+      try (FileOutputStream out = new FileOutputStream("build/native-highlight.png")) {
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
+      }
+      editor.setSelectionRegion(1, 0, 2, 8);
+      button(toolbar.getView(), "Highlight color").performClick();
+      AlertDialog remove = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+      button(remove.getWindow().getDecorView(), "Remove highlight").performClick();
+      assertTrue(editor.highlights.ranges().isEmpty());
     }
   }
 
