@@ -40,8 +40,9 @@ if [ -z "$ENGINE" ]; then
 fi
 case "$ENGINE" in
     # SELinux relabel flag for bind mounts (Fedora et al.)
-    podman) ZFLAG=":Z" ;;
-    *)      ZFLAG="" ;;
+    podman) ZFLAG=":Z";  KEYTOOL_USER=() ;;
+    # Rootful docker would leave a root-owned keystore the runner cannot chmod.
+    *)      ZFLAG="";    KEYTOOL_USER=(--user "$(id -u):$(id -g)") ;;
 esac
 
 # Select apps: arguments, or every directory under apps/.
@@ -76,7 +77,7 @@ if [ ! -f "$KEYSTORE_FILE" ] || [ ! -f "$KEYSTORE_PROPS" ]; then
     pass="$(head -c 48 /dev/urandom | base64 | tr -d '/+=\n' | head -c 32)"
     printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=androidbase\n' \
         "$pass" "$pass" > "$KEYSTORE_PROPS"
-    "$ENGINE" run --rm -v "$KEYSTORE_DIR:/ks$ZFLAG" "$IMAGE" \
+    "$ENGINE" run --rm "${KEYTOOL_USER[@]}" -v "$KEYSTORE_DIR:/ks$ZFLAG" "$IMAGE" \
         keytool -genkeypair -keystore /ks/release.keystore -alias androidbase \
         -keyalg RSA -keysize 4096 -validity 10950 \
         -storepass "$pass" -keypass "$pass" \
