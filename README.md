@@ -1,8 +1,37 @@
-# CodeFile — native Android
+# CodeFile
 
-`com.TechHurts.CodeFile` · `v26.0913.013`
+<img src="assets/codefile-logo.svg" alt="CodeFile logo" width="96" align="right">
+
+A native Android viewer for source code and text. Open a file or share text from another app, then read it with syntax colors, line numbers, search, diffs, themes, Markdown and JSON previews, and PDF export. Everything runs on the device; the only network use is optional AI analysis of a snippet you preview and send yourself.
+
+`com.TechHurts.CodeFile` · `v26.0913.013` · Android 7.0+ (minSdk 24, targets API 36)
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
+
+## Screenshots
+
+<p>
+  <img src="screenshots/01-code-view.png" alt="Syntax-highlighted Java with line numbers" width="23%">
+  <img src="screenshots/02-search-ribbon.png" alt="Search ribbon" width="23%">
+  <img src="screenshots/03-view-ribbon.png" alt="View ribbon with wrap, zoom and fit width" width="23%">
+  <img src="screenshots/04-navigation-ribbon.png" alt="Navigation ribbon" width="23%">
+</p>
+<p>
+  <img src="screenshots/05-markdown-preview.png" alt="Native Markdown preview" width="23%">
+  <img src="screenshots/06-json-tree.png" alt="Expandable JSON tree" width="23%">
+</p>
+
+Code view with the Office-style ribbon · Search · View · Navigation · Markdown preview · JSON tree.
+
+### Regenerating the screenshots
+
+Screenshots are captured on an emulator with [android_screen_runner](https://github.com/maxfridbe/android_screen_runner), driven by [`scripts/screenshots.ts`](scripts/screenshots.ts). With a debug APK in `output/codefile/` and the runner's emulator started:
+
+```sh
+RUNNER_SCRIPTS=<runner>/scripts/emulator.sh <runner>/artifacts/android-screen-runner run scripts/screenshots.ts
+```
+
+Images land in `screenshots/`.
 
 ## Features
 
