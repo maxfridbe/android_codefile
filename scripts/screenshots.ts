@@ -92,3 +92,17 @@ tab("JSON");
 device.getButton({ contains: "tree" }).click();
 device.sleep(1500);
 log(device.shot("06-json-tree"));
+
+// A public GitHub file opened from its link: remote mode adds Save copy next to Share file.
+device.keys.back(); // close the JSON tree
+device.sleep(500);
+device.shell(
+  `am start -a android.intent.action.VIEW -n ${APP} ` +
+    "-d https://github.com/maxfridbe/android_codefile/blob/main/apps/codefile/app/src/main/java/com/TechHurts/CodeFile/ApiEndpoint.java",
+);
+device.sleep(7000);
+device.swipe(100, 214, 950, 214); // tab strip back to File (already selected; tapping it would collapse)
+device.sleep(500);
+device.swipe(950, 400, 100, 400); // ribbon over to the File copy group
+device.sleep(800);
+log(device.shot("07-github-file-copy"));

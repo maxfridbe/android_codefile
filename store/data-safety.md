@@ -9,6 +9,7 @@ This is a code-based inventory, not a pre-submitted Play declaration.
 | API credentials | Endpoint-specific encrypted app-private storage | Sent as authorization to that endpoint |
 | API response | Session UI | Provider already handles it; user can share it |
 | Diagnostics | Bounded private logs, including device/OS information | Only explicit Support log sharing |
+| GitHub file you open by link | Session memory only | The link path and IP address go to GitHub (raw.githubusercontent.com) when the user opens the link |
 | Settings | Private preferences | No automatic upload/backup |
 | Analytics, ads, account identifiers | Not implemented | No analytics/ad collection |
 

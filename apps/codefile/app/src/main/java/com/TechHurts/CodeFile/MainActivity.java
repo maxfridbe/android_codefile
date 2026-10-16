@@ -85,9 +85,13 @@ public class MainActivity extends Activity {
   private boolean navigation, connecting, syntaxReady;
   private long startupStarted;
   private static final int OPEN = 1, SAVE = 2, LIMIT = 8 * 1024 * 1024;
+  private Button saveCopy;
 
   static final class Document {
     final String name, original, raw, encoding, uri;
+    /** Set when the text was fetched from GitHub rather than opened from the device. */
+    GithubUrl remote;
+
     String language, preview;
     String[] labels;
     boolean formatted;
@@ -340,7 +344,7 @@ public class MainActivity extends Activity {
       commands.add(command);
     }
     String[][] captions = {
-      {"Files", "Sharing"},
+      {"Files", "Sharing", "File copy"},
       {"Reading", "Zoom"},
       {"Source", "Comparison"},
       {"Diagnostics", "About", "Privacy"},
@@ -351,7 +355,7 @@ public class MainActivity extends Activity {
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
-      {{0, 1, 5}, {4, 2, 3}},
+      {{0, 1, 5}, {4, 2, 3}, {6, 7}},
       {{0, 1}, {4, 3, 2}},
       {{1, 0, 2}, {3}},
       {{0, 1, 2}, {3, 4, 5}, {6}},
@@ -513,6 +517,16 @@ public class MainActivity extends Activity {
               if (current != null)
                 actions.save(current.name, current.formatted ? current.text() : current.raw);
             }));
+    fileActions.addView(button("Share file", 0xf03e2, this::shareFile));
+    saveCopy =
+        button(
+            "Save copy",
+            0xf01da,
+            () -> {
+              if (current != null) actions.saveFile(current.name, current.raw);
+            });
+    saveCopy.setVisibility(View.GONE);
+    fileActions.addView(saveCopy);
     ribbonPage(fileActions);
     documentRow = row();
     documentRow.setTag("fileStrip");
@@ -598,7 +612,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.0913.013")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.1016.001")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     support.addView(button("Privacy", 0xf0498, this::showPrivacy));
@@ -738,6 +752,10 @@ public class MainActivity extends Activity {
   }
 
   private void addDocument(String name, String source, String encoding, String uri) {
+    addDocument(name, source, encoding, uri, null);
+  }
+
+  void addDocument(String name, String source, String encoding, String uri, GithubUrl remote) {
     if (source.length() > LIMIT || source.indexOf('\0') >= 0) {
       error("Only text files up to 8 MiB can be opened");
       return;
@@ -747,6 +765,7 @@ public class MainActivity extends Activity {
       return;
     }
     Document d = new Document(name, source, encoding, uri);
+    d.remote = remote;
     d.language = syntax.detect(name);
     documents.add(d);
     current = d;
@@ -811,8 +830,10 @@ public class MainActivity extends Activity {
     }
     configureEditor(editor);
     updateFormatTabs();
+    saveCopy.setVisibility(current.remote != null ? View.VISIBLE : View.GONE);
     title.setText(
-        current.language
+        (current.remote != null ? "GitHub " + current.remote.label() + " · " : "")
+            + current.language
             + " · "
             + current.encoding
             + " · "
@@ -1986,6 +2007,12 @@ public class MainActivity extends Activity {
         range[1]);
   }
 
+  /** The open file as an attachment, not as pasted text. */
+  private void shareFile() {
+    if (current == null) return;
+    actions.share(current.name, current.formatted ? current.text() : current.raw, true);
+  }
+
   private void askSelectedLines() {
     String snippet = selectedSnippet(true);
     if (snippet.length() > 120000) {
@@ -2669,7 +2696,12 @@ public class MainActivity extends Activity {
     if (intent == null) return;
     log.event("intent.received action=" + safeAction(intent.getAction()));
     LinkedHashSet<Uri> uris = new LinkedHashSet<>();
-    if (intent.getData() != null) uris.add(intent.getData());
+    Uri data = intent.getData();
+    if (data != null && isWebLink(data)) {
+      openGithub(GithubUrl.parse(data.toString()));
+      return;
+    }
+    if (data != null) uris.add(data);
     if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
       ArrayList<Uri> many = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
       if (many != null) uris.addAll(many);
@@ -2695,6 +2727,12 @@ public class MainActivity extends Activity {
                 ? Intent.EXTRA_PROCESS_TEXT
                 : Intent.EXTRA_TEXT);
     if (text == null && clip != null && clip.getItemCount() > 0) text = clip.getItemAt(0).getText();
+    boolean sent = Intent.ACTION_SEND.equals(intent.getAction());
+    GithubUrl shared = sent && text != null ? GithubUrl.fromSharedText(text.toString()) : null;
+    if (uris.isEmpty() && shared != null) {
+      openGithub(shared);
+      return;
+    }
     if (uris.isEmpty() && text != null) {
       String name = intent.getStringExtra(Intent.EXTRA_TITLE);
       if (name == null || name.trim().isEmpty()) name = "Shared snippet.txt";
@@ -2717,6 +2755,70 @@ public class MainActivity extends Activity {
     }
   }
 
+  /** Text and charset name; BOM-marked UTF-16 is honored, anything else must be valid UTF-8. */
+  private static String[] decodeText(byte[] data) throws IOException {
+    int offset = 0;
+    Charset charset = StandardCharsets.UTF_8;
+    if (data.length >= 2 && data[0] == (byte) 0xff && data[1] == (byte) 0xfe) {
+      charset = StandardCharsets.UTF_16LE;
+      offset = 2;
+    } else if (data.length >= 2 && data[0] == (byte) 0xfe && data[1] == (byte) 0xff) {
+      charset = StandardCharsets.UTF_16BE;
+      offset = 2;
+    } else if (data.length >= 3
+        && data[0] == (byte) 0xef
+        && data[1] == (byte) 0xbb
+        && data[2] == (byte) 0xbf) offset = 3;
+    String text =
+        charset
+            .newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(data, offset, data.length - offset))
+            .toString();
+    if (text.indexOf('\0') >= 0)
+      throw new IOException("This appears to be a binary file, not source text");
+    return new String[] {text, charset.name()};
+  }
+
+  private static boolean isWebLink(Uri uri) {
+    return "https".equals(uri.getScheme()) || "http".equals(uri.getScheme());
+  }
+
+  /** Fetches one public GitHub file on request; redirects are refused and nothing is sent but GET. */
+  private void openGithub(GithubUrl link) {
+    if (link == null) {
+      error("Only GitHub file links (github.com/…/blob/…) can be opened");
+      return;
+    }
+    toast("Fetching " + link.name + " from GitHub…");
+    io.execute(
+        () -> {
+          HttpURLConnection connection = null;
+          try {
+            connection = (HttpURLConnection) new URL(link.raw).openConnection();
+            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(20000);
+            connection.setRequestProperty("Accept", "text/plain, */*");
+            connection.setRequestProperty("User-Agent", "CodeFile");
+            int code = connection.getResponseCode();
+            if (code == 404) throw new IOException("not found; only public files can be fetched");
+            if (code != 200) throw new IOException("GitHub answered HTTP " + code);
+            if (connection.getContentLengthLong() > LIMIT)
+              throw new IOException("File exceeds the 8 MiB viewing limit");
+            byte[] data = bytes(connection.getInputStream(), LIMIT);
+            log.event("github.fetch bytes=" + data.length);
+            String[] decoded = decodeText(data);
+            ui(() -> addDocument(link.name, decoded[0], decoded[1], link.raw, link));
+          } catch (Exception e) {
+            log.event("github.fetch.failed class=" + e.getClass().getSimpleName());
+            error("Cannot open GitHub file: " + e.getMessage());
+          } finally {
+            if (connection != null) connection.disconnect();
+          }
+        });
+  }
+
   private void read(Uri uri) {
     if (!"content".equals(uri.getScheme())) {
       error("Choose a document from a content provider using Open files.");
@@ -2733,27 +2835,8 @@ public class MainActivity extends Activity {
             }
             byte[] data = bytes(getContentResolver().openInputStream(uri), LIMIT);
             log.event("document.read bytes=" + data.length);
-            int offset = 0;
-            Charset charset = StandardCharsets.UTF_8;
-            if (data.length >= 2 && data[0] == (byte) 0xff && data[1] == (byte) 0xfe) {
-              charset = StandardCharsets.UTF_16LE;
-              offset = 2;
-            } else if (data.length >= 2 && data[0] == (byte) 0xfe && data[1] == (byte) 0xff) {
-              charset = StandardCharsets.UTF_16BE;
-              offset = 2;
-            } else if (data.length >= 3
-                && data[0] == (byte) 0xef
-                && data[1] == (byte) 0xbb
-                && data[2] == (byte) 0xbf) offset = 3;
-            String text =
-                charset
-                    .newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(data, offset, data.length - offset))
-                    .toString();
-            if (text.indexOf('\0') >= 0)
-              throw new IOException("This appears to be a binary file, not source text");
-            document(name, text, charset.name(), uri.toString());
+            String[] decoded = decodeText(data);
+            document(name, decoded[0], decoded[1], uri.toString());
           } catch (Exception e) {
             log.event("document.read.failed class=" + e.getClass().getSimpleName());
             error("Cannot open file: " + e.getMessage());
@@ -2868,7 +2951,9 @@ public class MainActivity extends Activity {
             ui(
                 () -> {
                   try {
-                    startActivity(Intent.createChooser(intent, "Share with Claude or another app"));
+                    startActivity(
+                        Intent.createChooser(
+                            intent, file ? "Share file" : "Share with Claude or another app"));
                   } catch (ActivityNotFoundException e) {
                     error("No share target installed");
                   }
@@ -2957,6 +3042,15 @@ public class MainActivity extends Activity {
     }
 
     public void save(String name, String text) {
+      save(name, text, "text/plain");
+    }
+
+    /** A copy of the file as-is; a generic type keeps the picker from adding ".txt". */
+    public void saveFile(String name, String text) {
+      save(name, text, "application/octet-stream");
+    }
+
+    private void save(String name, String text, String mime) {
       ui(
           () -> {
             if (exportText != null) {
@@ -2967,7 +3061,7 @@ public class MainActivity extends Activity {
             try {
               startActivityForResult(
                   new Intent(Intent.ACTION_CREATE_DOCUMENT)
-                      .setType("text/plain")
+                      .setType(mime)
                       .addCategory(Intent.CATEGORY_OPENABLE)
                       .putExtra(Intent.EXTRA_TITLE, name),
                   SAVE);

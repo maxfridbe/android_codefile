@@ -126,6 +126,90 @@ public class NativeActivityTest {
     }
   }
 
+  private void settle(MainActivity activity, java.util.function.BooleanSupplier done)
+      throws Exception {
+    for (int i = 0; i < 200 && !done.getAsBoolean(); i++) {
+      Thread.sleep(10);
+      shadowOf(Looper.getMainLooper()).idle();
+    }
+  }
+
+  @Test
+  public void remoteGithubFileOffersSaveCopyAndSharesAsAttachment() throws Exception {
+    GithubUrl link = GithubUrl.parse("https://github.com/o/r/blob/main/src/Remote.java");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertFalse("local file has no Save copy", button(root, "Save copy").isShown());
+      activity.addDocument("Remote.java", "class Remote {}\n", "UTF-8", link.raw, link);
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals("class Remote {}\n", find(root, CodeEditor.class).getText().toString());
+      assertTrue("remote file offers Save copy", button(root, "Save copy").isShown());
+
+      button(root, "Save copy").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      org.robolectric.shadows.ShadowActivity.IntentForResult request =
+          shadowOf(activity).getNextStartedActivityForResult();
+      assertEquals(Intent.ACTION_CREATE_DOCUMENT, request.intent.getAction());
+      assertEquals("application/octet-stream", request.intent.getType());
+      assertEquals("Remote.java", request.intent.getStringExtra(Intent.EXTRA_TITLE));
+
+      shadowOf(activity).clearNextStartedActivities();
+      button(root, "Share file").performClick();
+      settle(activity, () -> shadowOf(activity).peekNextStartedActivity() != null);
+      Intent chooser = shadowOf(activity).getNextStartedActivity();
+      Intent send = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+      assertEquals(Intent.ACTION_SEND, send.getAction());
+      assertFalse("file, not pasted text", send.hasExtra(Intent.EXTRA_TEXT));
+      android.net.Uri stream = send.getParcelableExtra(Intent.EXTRA_STREAM);
+      assertEquals("content", stream.getScheme());
+      assertEquals(
+          "class Remote {}\n",
+          new String(
+              activity.getContentResolver().openInputStream(stream).readAllBytes(),
+              java.nio.charset.StandardCharsets.UTF_8));
+    }
+  }
+
+  @Test
+  public void localFileSharesAsAttachmentWithoutSaveCopy() throws Exception {
+    Intent incoming =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TITLE, "notes.md")
+            .putExtra(Intent.EXTRA_TEXT, "# Notes\n");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, incoming).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertFalse(button(root, "Save copy").isShown());
+      button(root, "Share file").performClick();
+      settle(activity, () -> shadowOf(activity).peekNextStartedActivity() != null);
+      Intent send =
+          shadowOf(activity)
+              .getNextStartedActivity()
+              .getParcelableExtra(Intent.EXTRA_INTENT);
+      assertTrue(send.hasExtra(Intent.EXTRA_STREAM));
+      assertFalse(send.hasExtra(Intent.EXTRA_TEXT));
+    }
+  }
+
+  @Test
+  public void unsupportedWebLinkIsRejectedWithoutFetching() {
+    Intent view =
+        new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://example.com/a/blob/b/c"));
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, view).setup()) {
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals(
+          "Only GitHub file links (github.com/…/blob/…) can be opened",
+          org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+    }
+  }
+
   @Test
   public void sourceFromShareIntentIsNotExecutable() {
     Intent intent =

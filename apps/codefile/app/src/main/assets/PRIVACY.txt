@@ -9,8 +9,11 @@ Files you open, paste or receive through Android sharing are processed on your d
 Optional AI analysis
 When you explicitly press Send in an analysis preview, CodeFile sends the displayed snippet and your instructions to the API endpoint you configured, together with the selected model and any saved API credential. The endpoint is shown before sending. This can be OpenRouter or a compatible server, including a local server. That provider controls its own processing, retention and privacy terms. CodeFile does not automatically send documents for analysis. Public endpoints require HTTPS. HTTP is allowed only for local-network/loopback endpoints and is not encrypted.
 
+Opening GitHub files
+When you open a GitHub file link (a github.com or raw.githubusercontent.com link shared to or opened with CodeFile), CodeFile downloads that one public file directly from raw.githubusercontent.com over HTTPS. GitHub receives the file path in the link and your device's IP address, as with any web request, and handles them under its own terms. No account, token or cookie is sent, redirects are refused, and private repositories are not supported. Nothing is fetched unless you open such a link. The downloaded text is kept in session memory like any other document; Save copy and Share file write only what you choose.
+
 Sharing and links
-Android sharing and Save send or write only what you choose. The receiving app, document provider or destination controls its own copy. Opening a Markdown link may hand the URL to another app; CodeFile does not preload remote Markdown images.
+Android sharing (including Share file, which attaches the open document as a file) and Save send or write only what you choose. The receiving app, document provider or destination controls its own copy. Opening a Markdown link may hand the URL to another app; CodeFile does not preload remote Markdown images.
 
 Local storage and retention
 Preferences and endpoint-specific API credentials remain in app-private storage. Credentials are encrypted with an Android Keystore key and can be removed by saving an empty key for that endpoint. Open documents, navigation indexes, annotations and analysis responses are kept in the session. Export and debug-log files are created in the private cache; old shared files are cleaned up on a later app launch after 24 hours. Android may clear cache earlier. Files you explicitly save outside the app remain until you remove them. Android backup and device-transfer extraction of app data are disabled.

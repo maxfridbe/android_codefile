@@ -4,7 +4,7 @@
 
 A native Android viewer for source code and text. Open a file or share text from another app, then read it with syntax colors, line numbers, search, diffs, themes, Markdown and JSON previews, and PDF export. Everything runs on the device; the only network use is optional AI analysis of a snippet you preview and send yourself.
 
-`com.TechHurts.CodeFile` · `v26.0913.013` · Android 7.0+ (minSdk 24, targets API 36)
+`com.TechHurts.CodeFile` · `v26.1016.001` · Android 7.0+ (minSdk 24, targets API 36)
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
@@ -19,9 +19,10 @@ CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **
 <p>
   <img src="screenshots/05-markdown-preview.png" alt="Native Markdown preview" width="23%">
   <img src="screenshots/06-json-tree.png" alt="Expandable JSON tree" width="23%">
+  <img src="screenshots/07-github-file-copy.png" alt="A GitHub file opened from its link, with Share file and Save copy" width="23%">
 </p>
 
-Code view with the Office-style ribbon · Search · View · Navigation · Markdown preview · JSON tree.
+Code view with the Office-style ribbon · Search · View · Navigation · Markdown preview · JSON tree · a GitHub file with Share file and Save copy.
 
 ### Regenerating the screenshots
 
@@ -37,6 +38,8 @@ Images land in `screenshots/`.
 
 - Responsive phone, tablet, split-screen and foldable layouts. The ribbon spans the top of normal phone/tablet windows; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Wrap shows an accent fill and border while enabled, with an accessible On/Off state; Fit width adjusts text size within 8–40sp without changing Wrap. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
 - Office-style File / Search / View / Code / Navigation / Support ribbon with rounded tabs with accent top/side outlines and open bottom edges joined to the ribbon upper border; the surrounding top bar stays unframed, 112dp command groups, outlined primary tiles, two stacked secondary actions, separators and aligned group captions. Tabs and command groups scroll horizontally when they exceed the available width. Reading scroll collapses the ribbon; scrolling back expands it unless it was manually collapsed. Manual collapse stays locked until tapping a tab or Expand ribbon, then automatic scroll behavior resumes. Resting folds put the entire controls pane below a horizontal hinge and the code above it. CodeFile’s 40dp icon sits left of File; Settings is in Support and also opens when pressing the app icon. The filename row stays visible. Tapping the selected tab collapses the expanded ribbon; finger displacement controls its animation, avoiding feedback from editor layout changes.
+- **GitHub links.** Open a `github.com/<owner>/<repo>/blob/<ref>/<path>`, `…/raw/…` or `raw.githubusercontent.com` link, from a browser, the GitHub app, another app's VIEW intent, or by sharing the URL to CodeFile, and the public file is fetched and shown with its own tab. A remote file adds **Save copy** (File → File copy) to write it to local storage. Only public files are supported: HTTPS only, no credentials, redirects refused, 8 MiB limit, nothing is fetched unless you open a link. Branch names containing `/` are ambiguous in `blob` links; use a commit SHA or a `raw` link for those.
+- **Share file.** File → File copy → Share file sends the document you are viewing as an attachment (a read-only content URI to a private cache copy) rather than as pasted text; Share keeps the snippet preview and Ask-an-LLM flow.
 - Read-only, selectable code with native scrolling, line numbers, wrapping, bracket matching, block guides, current-line highlighting, adjustable font/spacing, and whitespace display. Whitespace dots use a dedicated neutral gray, separate from syntax and accent colors, with light/dark theme variants.
 - 68 bundled language definitions / 78 TextMate grammars, including Java, Kotlin, JS/TS/JSX/TSX, Python, C/C++, C#, Rust, Go, Swift, PHP, HTML/XML, CSS, SQL, shell, Markdown, JSON/YAML/TOML and more. Manual language selection; unknown formats use plain text.
 - System document picker, multiple open files, paste, VIEW/EDIT, SEND/SEND_MULTIPLE, and PROCESS_TEXT intents. Incoming text from EXTRA_TEXT, PROCESS_TEXT, or ClipData can be saved through File → Save; EXTRA_TITLE supplies the suggested filename. Original documents are never overwritten. Save creates a UTF-8 copy.
@@ -89,7 +92,17 @@ SKIP_IMAGE_BUILD=1 BUILD_TASK='assembleDebug assembleRelease lint testDebugUnitT
 python3 scripts/audit-native-apk.py output/codefile/codefile-$(cat VERSION)-release.apk
 ```
 
-APKs: `output/codefile/`. Signing uses the existing private `keystore/`, excluded from source control. Back it up for future updates. CI builds/tests and uploads artifacts; it does not publish releases.
+APKs: `output/codefile/`. Signing uses the existing private `keystore/`, excluded from source control. Back it up for future updates. CI builds/tests and uploads artifacts. Pushing a `v*` tag, or running the workflow by hand, also publishes a GitHub Release with the APK, AAB and checksums (see below).
+
+### Releases
+
+Pushing a tag that equals `VERSION` publishes a GitHub Release carrying the release APK, the AAB and SHA-256 checksums:
+
+```sh
+git tag "$(cat VERSION)" && git push origin "$(cat VERSION)"
+```
+
+The workflow refuses a tag that differs from `VERSION`. To publish APKs signed with your own key, add repository secrets `ANDROID_KEYSTORE_B64` (`base64 -w0 keystore/release.keystore`) and `ANDROID_KEYSTORE_PROPERTIES` (the contents of `keystore/keystore.properties`). Without them CI signs with a throwaway key and the release notes say so; such an APK works but later releases cannot update over it.
 
 `VERSION` uses `vYY.MMDD.###`; increment the suffix for another release that day. Android versionCode is days since 2000-01-01 × 1000 + suffix. `VERSION_NAME` can override it. Native preparation rejects any browser-runtime asset accidentally added to the APK.
 
