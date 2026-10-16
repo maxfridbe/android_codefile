@@ -12,7 +12,7 @@ Compare documents with visual diffs. Select text or drag line numbers to select 
 
 The ribbon adapts to phones, tablets and foldable screens. Settings include paired light and dark themes and embedded Nerd Fonts.
 
-Open a public GitHub file straight from its link, then save a local copy or share it as a file attachment. Local viewing and formatting work without a network connection. Optional AI analysis sends only a snippet you preview and explicitly submit to your chosen OpenRouter-compatible endpoint, including a local server. A third-party account or API key may be required by that provider.
+Open code straight from the clipboard and let CodeFile guess the language, which you can change at any time. Open a public GitHub file straight from its link, then save a local copy or share it as a file attachment. Local viewing and formatting work without a network connection. Optional AI analysis sends only a snippet you preview and explicitly submit to your chosen OpenRouter-compatible endpoint, including a local server. A third-party account or API key may be required by that provider.
 
 No ads or tracking SDKs. No app account is required. Diagnostics stay local unless you choose to share a compressed log from Support.
 

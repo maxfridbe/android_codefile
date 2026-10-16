@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.*;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowDialog;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 28)
@@ -207,6 +208,72 @@ public class NativeActivityTest {
       assertEquals(
           "Only GitHub file links (github.com/…/blob/…) can be opened",
           org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+    }
+  }
+
+  private void putOnClipboard(MainActivity activity, String text) {
+    ((android.content.ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE))
+        .setPrimaryClip(ClipData.newPlainText("code", text));
+  }
+
+  private String currentTab(View root) {
+    return String.valueOf(find(root, Spinner.class).getSelectedItem());
+  }
+
+  @Test
+  public void clipboardCodeOpensWithSniffedLanguageAndStaysChangeable() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      putOnClipboard(
+          activity,
+          "import os\n\nclass Repo:\n    def files(self):\n        return os.listdir('.')\n");
+      button(root, "Clipboard").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals("clipboard.py", currentTab(root));
+      assertTrue(find(root, CodeEditor.class).getText().toString().contains("class Repo"));
+      assertTrue(
+          org.robolectric.shadows.ShadowToast.getTextOfLatestToast().startsWith("Looks like Python"));
+
+      // The guess is only a starting point: the language picker still offers every language.
+      button(root, "Language").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      android.app.AlertDialog picker = (android.app.AlertDialog) ShadowDialog.getLatestDialog();
+      assertEquals("Auto-detect from content", picker.getListView().getItemAtPosition(0));
+      assertTrue(picker.getListView().getCount() > 60);
+    }
+  }
+
+  @Test
+  public void emptyClipboardOpensNothing() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      String before = currentTab(root);
+      putOnClipboard(activity, "   ");
+      button(root, "Clipboard").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals(before, currentTab(root));
+      assertEquals(
+          "The clipboard has no text", org.robolectric.shadows.ShadowToast.getTextOfLatestToast());
+    }
+  }
+
+  @Test
+  public void untitledSharedYamlIsNamedAfterItsSniffedLanguage() {
+    Intent incoming =
+        new Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, "name: ci\non:\n  push:\n    branches: [main]\njobs:\n  t:\n    runs-on: x\n");
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class, incoming).setup()) {
+      shadowOf(Looper.getMainLooper()).idle();
+      assertEquals(
+          "Shared snippet.yaml", currentTab(controller.get().getWindow().getDecorView()));
     }
   }
 

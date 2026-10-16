@@ -7,3 +7,5 @@ javac -d "$test_dir" apps/codefile/app/src/main/java/com/TechHurts/CodeFile/ApiE
 java -cp "$test_dir" com.TechHurts.CodeFile.ApiEndpointTest
 javac -d "$test_dir" apps/codefile/app/src/main/java/com/TechHurts/CodeFile/GithubUrl.java tests/java/GithubUrlTest.java
 java -cp "$test_dir" com.TechHurts.CodeFile.GithubUrlTest
+javac -d "$test_dir" apps/codefile/app/src/main/java/com/TechHurts/CodeFile/LanguageSniffer.java tests/java/LanguageSnifferTest.java
+java -cp "$test_dir" com.TechHurts.CodeFile.LanguageSnifferTest

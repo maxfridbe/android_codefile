@@ -91,6 +91,8 @@ public class MainActivity extends Activity {
     final String name, original, raw, encoding, uri;
     /** Set when the text was fetched from GitHub rather than opened from the device. */
     GithubUrl remote;
+    /** True once the language came from sniffing or the user, not from the file name. */
+    boolean languageChosen;
 
     String language, preview;
     String[] labels;
@@ -145,7 +147,8 @@ public class MainActivity extends Activity {
             ui(
                 () -> {
                   syntaxReady = true;
-                  for (Document d : documents) d.language = syntax.detect(d.name);
+                  for (Document d : documents)
+                    if (!d.languageChosen) d.language = syntax.detect(d.name);
                   if (current != null) {
                     try {
                       syntax.apply(editor, current.language, syntaxTheme());
@@ -355,7 +358,7 @@ public class MainActivity extends Activity {
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
-      {{0, 1, 5}, {4, 2, 3}, {6, 7}},
+      {{0, 8, 1}, {4, 2, 3}, {6, 5, 7}},
       {{0, 1}, {4, 3, 2}},
       {{1, 0, 2}, {3}},
       {{0, 1, 2}, {3, 4, 5}, {6}},
@@ -527,6 +530,7 @@ public class MainActivity extends Activity {
             });
     saveCopy.setVisibility(View.GONE);
     fileActions.addView(saveCopy);
+    fileActions.addView(button("Clipboard", 0xf014a, this::openClipboard));
     ribbonPage(fileActions);
     documentRow = row();
     documentRow.setTag("fileStrip");
@@ -612,7 +616,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.1016.001")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.1016.002")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     support.addView(button("Privacy", 0xf0498, this::showPrivacy));
@@ -756,6 +760,17 @@ public class MainActivity extends Activity {
   }
 
   void addDocument(String name, String source, String encoding, String uri, GithubUrl remote) {
+    addDocument(name, source, encoding, uri, remote, null);
+  }
+
+  /** {@code language} overrides detection from the file name, e.g. a sniffed guess. */
+  void addDocument(
+      String name,
+      String source,
+      String encoding,
+      String uri,
+      GithubUrl remote,
+      String language) {
     if (source.length() > LIMIT || source.indexOf('\0') >= 0) {
       error("Only text files up to 8 MiB can be opened");
       return;
@@ -766,7 +781,8 @@ public class MainActivity extends Activity {
     }
     Document d = new Document(name, source, encoding, uri);
     d.remote = remote;
-    d.language = syntax.detect(name);
+    d.language = language != null ? language : syntax.detect(name);
+    d.languageChosen = language != null;
     documents.add(d);
     current = d;
     stopNavigation();
@@ -896,7 +912,7 @@ public class MainActivity extends Activity {
 
   private void paste() {
     LinearLayout content = column();
-    EditText name = input(content, "Filename", "snippet.java", false),
+    EditText name = input(content, "Filename (optional; language is detected)", "", false),
         text = input(content, "Code", "", true);
     final AlertDialog[] d = {null};
     content.addView(
@@ -904,7 +920,9 @@ public class MainActivity extends Activity {
             "Open snippet",
             0xf022e,
             () -> {
-              addDocument(name.getText().toString(), text.getText().toString(), "UTF-8", "");
+              String typed = name.getText().toString().trim();
+              if (typed.isEmpty()) openSniffed("snippet", text.getText().toString(), true);
+              else addDocument(typed, text.getText().toString(), "UTF-8", "");
               d[0].dismiss();
             }));
     d[0] = dialog("Paste code", scrolling(content));
@@ -912,16 +930,49 @@ public class MainActivity extends Activity {
 
   private void chooseLanguage() {
     if (current == null) return;
-    List<String> names = syntax.names();
+    List<String> names = new ArrayList<>();
+    names.add("Auto-detect from content");
+    names.addAll(syntax.names());
     new AlertDialog.Builder(this)
         .setTitle("Syntax language")
         .setItems(
             names.toArray(new String[0]),
             (d, i) -> {
-              current.language = names.get(i);
+              if (i == 0) {
+                LanguageSniffer.Result guess = LanguageSniffer.sniff(current.original);
+                current.language = guess.known() ? guess.language : syntax.detect(current.name);
+                toast("Detected " + (guess.known() ? guess.label : "by file name"));
+              } else current.language = names.get(i);
+              current.languageChosen = true;
               render();
             })
         .show();
+  }
+
+  /** Opens whatever text is on the clipboard, guessing its language from the content. */
+  private void openClipboard() {
+    android.content.ClipboardManager clipboard =
+        (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+    ClipData clip = clipboard == null ? null : clipboard.getPrimaryClip();
+    CharSequence text =
+        clip == null || clip.getItemCount() == 0 ? null : clip.getItemAt(0).coerceToText(this);
+    if (text == null || text.toString().trim().isEmpty()) {
+      error("The clipboard has no text");
+      return;
+    }
+    openSniffed("clipboard", text.toString(), true);
+  }
+
+  /** Opens text under a name whose extension follows the sniffed language. */
+  private void openSniffed(String base, String text, boolean announce) {
+    LanguageSniffer.Result guess = LanguageSniffer.sniff(text);
+    String name = LanguageSniffer.fileName(base, guess);
+    addDocument(name, text, "UTF-8", "", null, guess.known() ? guess.language : null);
+    if (announce)
+      toast(
+          guess.known()
+              ? "Looks like " + guess.label + ". Change it in Navigation → Language."
+              : "Language not recognized. Choose one in Navigation → Language.");
   }
 
   private LinearLayout buildInlineSearch() {
@@ -2735,7 +2786,11 @@ public class MainActivity extends Activity {
     }
     if (uris.isEmpty() && text != null) {
       String name = intent.getStringExtra(Intent.EXTRA_TITLE);
-      if (name == null || name.trim().isEmpty()) name = "Shared snippet.txt";
+      if (name == null || name.trim().isEmpty()) {
+        String snippet = text.toString();
+        ui(() -> openSniffed("Shared snippet", snippet, false));
+        return;
+      }
       name = name.replaceAll("[/\\\\\r\n]", "_");
       document(name, text.toString(), "UTF-8", "");
     }
