@@ -48,6 +48,11 @@ final class RibbonPage extends HorizontalScrollView {
     invalidate();
   }
 
+  /** Shows or hides one command group, so a page can offer only what suits the open file. */
+  void setGroupVisible(int index, boolean visible) {
+    groups.get(index).setVisibility(visible ? View.VISIBLE : View.GONE);
+  }
+
   void prependPanel(View panel, int width) {
     track.addView(panel, 0, new LinearLayout.LayoutParams(dp(width), dp(112)));
   }

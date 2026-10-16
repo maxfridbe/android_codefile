@@ -347,25 +347,25 @@ public class MainActivity extends Activity {
       commands.add(command);
     }
     String[][] captions = {
-      {"Files", "Sharing", "File copy"},
+      {"Files", "Sharing", "File copy", "Display"},
       {"Reading", "Zoom"},
       {"Source", "Comparison"},
       {"Diagnostics", "About", "Privacy"},
       {},
       {"Browse", "Inspect"},
       {"Markdown"},
-      {"JSON"},
+      {"JSON", "Tree", "Patch"},
       {"Selected lines", "Analysis"}
     };
     int[][][] order = {
-      {{0, 8, 1}, {4, 2, 3}, {6, 5, 7}},
+      {{0, 8, 1}, {4, 2, 3}, {6, 5, 7}, {9}},
       {{0, 1}, {4, 3, 2}},
       {{1, 0, 2}, {3}},
       {{0, 1, 2}, {3, 4, 5}, {6}},
       {},
       {{0, 1, 2}, {4, 3}},
       {{0}},
-      {{0}},
+      {{0}, {1}, {2}},
       {{0, 1, 2}, {3, 4, 5}}
     };
     int index = ribbonPages.size();
@@ -531,6 +531,7 @@ public class MainActivity extends Activity {
     saveCopy.setVisibility(View.GONE);
     fileActions.addView(saveCopy);
     fileActions.addView(button("Clipboard", 0xf014a, this::openClipboard));
+    fileActions.addView(button("Cast this", 0xf0118, this::castThis));
     ribbonPage(fileActions);
     documentRow = row();
     documentRow.setTag("fileStrip");
@@ -616,7 +617,7 @@ public class MainActivity extends Activity {
         button(
             "About",
             0xf0625,
-            () -> showText("CodeFile", "Native Android code viewer · " + "v26.1016.002")));
+            () -> showText("CodeFile", "Native Android code viewer · " + "v26.1016.003")));
     support.addView(button("Licenses", 0xf0fc3, this::showLicenses));
     support.addView(button("Settings", 0xf0493, this::settings));
     support.addView(button("Privacy", 0xf0498, this::showPrivacy));
@@ -638,6 +639,8 @@ public class MainActivity extends Activity {
     ribbonPage(markdown);
     LinearLayout json = row();
     json.addView(button("View JSON tree", 0xf0626, this::viewJsonTree));
+    json.addView(button("View tree", 0xf0645, this::viewTree));
+    json.addView(button("View diff", 0xf055a, this::viewPatch));
     ribbonPage(json);
     highlightSwatches.clear();
     clearColorButtons.clear();
@@ -1202,7 +1205,37 @@ public class MainActivity extends Activity {
     updateColorActions();
   }
 
+  /** Asks for a paper size (remembered), then renders and shares the syntax-highlighted PDF. */
   private void sharePdf() {
+    if (current == null) return;
+    LinearLayout content = column();
+    List<String> labels = new ArrayList<>();
+    for (PdfShare.PageSize page : PdfShare.PageSize.ALL) labels.add(page.label());
+    PdfShare.PageSize saved = PdfShare.PageSize.byName(prefs.getString("pdfPage", "A4"));
+    Spinner size = select(content, "Paper size", labels.toArray(new String[0]), saved.label());
+    boolean part = editor.getCursor().isSelected();
+    content.addView(
+        label(
+            part
+                ? "Only the selected text is exported, with its syntax colors and highlights."
+                : "The whole document is exported, with its syntax colors and highlights.",
+            12,
+            muted));
+    final AlertDialog[] d = {null};
+    content.addView(
+        button(
+            "Share PDF",
+            0xf0226,
+            () -> {
+              PdfShare.PageSize page = PdfShare.PageSize.ALL.get(size.getSelectedItemPosition());
+              prefs.edit().putString("pdfPage", page.name).apply();
+              d[0].dismiss();
+              sharePdf(page);
+            }));
+    d[0] = dialog("Share as PDF", scrolling(content));
+  }
+
+  private void sharePdf(PdfShare.PageSize pageSize) {
     if (current == null) return;
     String source = current.text(), name = current.name;
     int start = editor.getCursor().isSelected() ? editor.getCursor().getLeft() : 0;
@@ -1227,7 +1260,8 @@ public class MainActivity extends Activity {
     io.execute(
         () -> {
           try {
-            File file = PdfShare.write(getCacheDir(), name, source, start, end, snapshot, font);
+            File file =
+                PdfShare.write(getCacheDir(), name, source, start, end, snapshot, font, pageSize);
             Uri uri =
                 new Uri.Builder()
                     .scheme("content")
@@ -1277,19 +1311,47 @@ public class MainActivity extends Activity {
     updateStatus();
   }
 
+  private static final List<String> JSON_EXTENSIONS =
+      Arrays.asList("json", "jsonld", "geojson", "ipynb", "webmanifest", "jsonc", "jsonl", "ndjson");
+
+  /** The tree kind a document offers beyond JSON ("YAML", "XML", …), or null. */
+  private static String treeKind(String language, String ext) {
+    if (language.equals("yaml") || language.equals("dockercompose") || ext.equals("yaml") || ext.equals("yml"))
+      return "YAML";
+    if (ext.equals("toml")) return "TOML";
+    if (language.equals("properties") || ext.equals("properties") || ext.equals("env")) return "Props";
+    if (language.equals("ini") || ext.equals("ini") || ext.equals("cfg")) return "INI";
+    boolean xml = language.equals("xml") || language.equals("xsl") || Arrays.asList("xml", "svg", "xsd", "xsl", "plist", "csproj", "gpx").contains(ext);
+    return xml ? "XML" : null;
+  }
+
   private void updateFormatTabs() {
     String language = current.language.toLowerCase(Locale.ROOT);
     String ext = TextFormats.extension(current.name);
     boolean markdown =
         language.startsWith("markdown")
             || Arrays.asList("md", "markdown", "mdown", "mkd").contains(ext);
-    boolean json = language.equals("json") || ext.equals("json") || ext.equals("jsonld");
+    boolean json =
+        Arrays.asList("json", "jsonc", "jsonl", "ndjson").contains(language)
+            || JSON_EXTENSIONS.contains(ext);
+    String tree = json ? null : treeKind(language, ext);
+    boolean patch = !json && tree == null && (language.equals("diff") || ext.equals("diff") || ext.equals("patch"));
+    boolean data = json || tree != null || patch;
+    String label = json ? "JSON" : tree != null ? tree : patch ? "Diff" : "JSON";
     for (RibbonTab tab : ribbonTabButtons) {
       int index = (Integer) tab.getTag();
       if (index == 6) tab.setVisibility(markdown ? View.VISIBLE : View.GONE);
-      if (index == 7) tab.setVisibility(json ? View.VISIBLE : View.GONE);
+      if (index == 7) {
+        tab.setVisibility(data ? View.VISIBLE : View.GONE);
+        tab.setText(iconText(0xf0626, label));
+        tab.setContentDescription(label);
+      }
     }
-    if ((ribbonTab == 6 && !markdown) || (ribbonTab == 7 && !json) || ribbonTab == 8)
+    RibbonPage dataPage = (RibbonPage) ribbonPages.get(7);
+    dataPage.setGroupVisible(0, json);
+    dataPage.setGroupVisible(1, tree != null);
+    dataPage.setGroupVisible(2, patch);
+    if ((ribbonTab == 6 && !markdown) || (ribbonTab == 7 && !data) || ribbonTab == 8)
       selectRibbon(0);
     ribbonBody.invalidate();
   }
@@ -1329,23 +1391,131 @@ public class MainActivity extends Activity {
     io.execute(
         () -> {
           try {
-            JsonTree.Node tree = JsonTree.parse(source);
-            ui(
-                () -> {
-                  if (current != doc) return;
-                  JsonTreeView view =
-                      new JsonTreeView(
-                          this,
-                          tree,
-                          theme,
-                          this::iconText,
-                          node -> showText(node.path + " · " + node.type, node.value));
-                  dialog("JSON · " + doc.name, previewFrame(view));
-                });
+            String language = doc.language.toLowerCase(Locale.ROOT);
+            boolean lines = language.equals("jsonl") || language.equals("ndjson");
+            JsonTree.Node tree =
+                lines
+                    ? StructuredTree.jsonLines(source)
+                    : language.equals("jsonc")
+                        ? StructuredTree.jsonc(source)
+                        : JsonTree.parse(source);
+            showTree(doc, tree, theme, "JSON");
           } catch (Exception failure) {
             error("JSON: " + message(failure));
           }
         });
+  }
+
+  private void showTree(Document doc, JsonTree.Node tree, AppTheme theme, String kind) {
+    ui(
+        () -> {
+          if (current != doc) return;
+          JsonTreeView view =
+              new JsonTreeView(
+                  this,
+                  tree,
+                  theme,
+                  this::iconText,
+                  node -> showText(node.path + " · " + node.type, node.value));
+          view.setContentDescription(kind + " tree");
+          dialog(kind + " · " + doc.name, previewFrame(view));
+        });
+  }
+
+  /** YAML, TOML, INI, properties or XML as the same recycled native tree used for JSON. */
+  private void viewTree() {
+    if (current == null) return;
+    Document doc = current;
+    String source = doc.text();
+    String kind = treeKind(doc.language.toLowerCase(Locale.ROOT), TextFormats.extension(doc.name));
+    if (kind == null) return;
+    AppTheme theme = selectedTheme();
+    io.execute(
+        () -> {
+          try {
+            JsonTree.Node tree;
+            if (kind.equals("YAML")) tree = StructuredTree.yaml(source);
+            else if (kind.equals("TOML")) tree = StructuredTree.toml(source);
+            else if (kind.equals("Props")) tree = StructuredTree.properties(source);
+            else if (kind.equals("INI")) tree = StructuredTree.ini(source);
+            else tree = StructuredTree.xml(source);
+            showTree(doc, tree, theme, kind);
+          } catch (Exception failure) {
+            error(kind + ": " + message(failure));
+          }
+        });
+  }
+
+  /** A unified diff or patch file with line numbers and add/remove coloring, no second file needed. */
+  private void viewPatch() {
+    if (current == null) return;
+    Document doc = current;
+    String source = doc.text();
+    io.execute(
+        () -> {
+          try {
+            PatchModel model = new PatchModel(source);
+            ui(() -> showPatch(doc, model));
+          } catch (Exception failure) {
+            error("Diff: " + message(failure));
+          }
+        });
+  }
+
+  private void showPatch(Document doc, PatchModel model) {
+    if (current != doc) return;
+    LinearLayout content = column();
+    content.addView(
+        label(
+            model.files + (model.files == 1 ? " file" : " files") + "  +" + model.added + "  −" + model.removed,
+            12,
+            accent));
+    ListView list = new ListView(this);
+    list.setDividerHeight(0);
+    list.setAdapter(
+        new BaseAdapter() {
+          public int getCount() {
+            return model.rows.size();
+          }
+
+          public Object getItem(int position) {
+            return model.rows.get(position);
+          }
+
+          public long getItemId(int position) {
+            return position;
+          }
+
+          public View getView(int position, View recycled, ViewGroup parent) {
+            PatchModel.Row row = model.rows.get(position);
+            TextView view = recycled instanceof TextView ? (TextView) recycled : label("", 12, fg);
+            String old = row.oldNo > 0 ? String.format(Locale.ROOT, "%4d", row.oldNo) : "    ";
+            String now = row.newNo > 0 ? String.format(Locale.ROOT, "%4d", row.newNo) : "    ";
+            boolean numbered = row.kind == PatchModel.ADD || row.kind == PatchModel.DEL || row.kind == PatchModel.CONTEXT;
+            String marker = row.kind == PatchModel.ADD ? "+" : row.kind == PatchModel.DEL ? "-" : " ";
+            view.setText(numbered ? old + " " + now + " " + marker + row.text : row.text);
+            view.setTypeface(codeFont);
+            view.setTextColor(row.kind == PatchModel.FILE || row.kind == PatchModel.HUNK ? accent : row.kind == PatchModel.META ? muted : fg);
+            int background = Color.TRANSPARENT;
+            if (row.kind == PatchModel.ADD) background = 0x243fbf70;
+            else if (row.kind == PatchModel.DEL) background = 0x24ed5962;
+            else if (row.kind == PatchModel.HUNK) background = (accent & 0xffffff) | 0x20000000;
+            view.setBackgroundColor(background);
+            return view;
+          }
+        });
+    list.setContentDescription("Diff view");
+    content.addView(list, new LinearLayout.LayoutParams(-1, dp(420)));
+    dialog("Diff · " + doc.name, content);
+  }
+
+  /** Opens Android's own Cast screen: it mirrors CodeFile, with the open file, to a TV or display. */
+  private void castThis() {
+    try {
+      startActivity(new Intent(android.provider.Settings.ACTION_CAST_SETTINGS));
+    } catch (ActivityNotFoundException e) {
+      error("This device has no screen casting settings");
+    }
   }
 
   private View previewFrame(View view) {

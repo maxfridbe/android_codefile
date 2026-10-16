@@ -4,7 +4,7 @@
 
 A native Android viewer for source code and text. Open a file or share text from another app, then read it with syntax colors, line numbers, search, diffs, themes, Markdown and JSON previews, and PDF export. Everything runs on the device; the only network use is optional AI analysis of a snippet you preview and send yourself.
 
-`com.TechHurts.CodeFile` · `v26.1016.002` · Android 7.0+ (minSdk 24, targets API 36)
+`com.TechHurts.CodeFile` · `v26.1016.003` · Android 7.0+ (minSdk 24, targets API 36)
 
 CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **no WebView, browser UI, JavaScript runtime, HTML, or CSS** in the app. TextMate JSON files are grammar data interpreted by a Java highlighting engine.
 
@@ -20,9 +20,12 @@ CodeFile uses native Android Views and the Sora `CodeEditor` widget. There is **
   <img src="screenshots/05-markdown-preview.png" alt="Native Markdown preview" width="23%">
   <img src="screenshots/06-json-tree.png" alt="Expandable JSON tree" width="23%">
   <img src="screenshots/07-github-file-copy.png" alt="A GitHub file opened from its link, with Share file and Save copy" width="23%">
+  <img src="screenshots/08-yaml-tree.png" alt="YAML as an expandable tree" width="23%">
+  <img src="screenshots/09-patch-view.png" alt="A patch file with line numbers and colored changes" width="23%">
+  <img src="screenshots/10-pdf-paper-size.png" alt="Choosing a paper size for Share PDF" width="23%">
 </p>
 
-Code view with the Office-style ribbon · Search · View · Navigation · Markdown preview · JSON tree · a GitHub file with Share file and Save copy.
+Code view with the Office-style ribbon · Search · View · Navigation · Markdown preview · JSON tree · a GitHub file with Share file and Save copy · YAML tree · patch view · PDF paper size.
 
 ### Regenerating the screenshots
 
@@ -34,7 +37,54 @@ RUNNER_SCRIPTS=<runner>/scripts/emulator.sh <runner>/artifacts/android-screen-ru
 
 Images land in `screenshots/`.
 
-## Features
+## Supported features
+
+**Opening content**
+- System file picker, multiple open files (up to 20 tabs, 8 MiB each), UTF-8 and BOM-marked UTF-16
+- **Clipboard** button: open copied text with no file name; **Paste** dialog (file name optional)
+- Android VIEW, EDIT, SEND, SEND_MULTIPLE and PROCESS_TEXT intents; shared text becomes a document
+- **GitHub links** (`github.com/…/blob/…`, `…/raw/…`, `raw.githubusercontent.com`) opened from a browser, another app or a shared URL; public files only
+
+**Reading**
+- Syntax highlighting for 68 language definitions (78 TextMate grammars) with 14 paired light/dark themes
+- Line numbers, wrapping, fit width, pinch zoom (8–40 sp), whitespace markers, bracket matching, block guides, current-line highlight
+- JetBrains Mono and Fira Code Nerd Fonts, adjustable size and spacing
+- Phone, tablet, split-screen and foldable layouts with an Office-style collapsing ribbon
+
+**Language detection**
+- By file name or extension, by content when there is no usable name (`LanguageSniffer`: markers first, then a family tree of data, markup, C-like, indentation, shell/scripting, query and build languages)
+- Always changeable: Navigation → Language, plus Auto-detect from content
+
+**Search and navigation**
+- Inline search with live match highlighting, match counts, case and regex options, go to line
+- Symbols, Definition, References and Info (embedded JavaParser for Java, a local lexical index for other languages)
+
+**Formatting**
+- Brace-language reindent, JSON, JSON Lines, YAML (comments and anchors kept), XML, CSV/TSV, with source-line references in formatted previews
+
+**Previews and viewers** (the contextual ribbon tab is named for the open format)
+- **Markdown** rendered natively (headings, lists, quotes, code, tables, task lists, strikethrough)
+- **Tree view** for **JSON**, **JSON with comments**, **JSON Lines**, **YAML**, **TOML**, **INI**, **.properties / .env** and **XML**
+- **Diff** view for `.diff` / `.patch` files: line numbers, add/remove coloring, per-file counts
+- **Table** view for CSV, TSV and semicolon/pipe-delimited text
+- Visual **comparison** of any two open documents, unified or side by side, with patch export
+
+**Selecting and annotating**
+- Drag line numbers to select whole lines, standard text selection, colored highlights that follow wrapping and zoom
+
+**Sharing and export**
+- **Share** (preview, then optionally Ask an LLM), **Share file** (attachment, not text), **Share PDF**
+- **PDF** keeps syntax colors, highlights, font, line numbers and source references, in your choice of **A4, Letter, Legal, A5, A6, B5, Executive or Tabloid**
+- **Save** (UTF-8 copy), **Save copy** for remote files, **Copy**, share a compressed diagnostic log
+- **Cast this** opens Android's Cast screen to mirror the viewer to a TV or display
+
+**Optional AI analysis**
+- Any OpenAI-compatible chat completions endpoint: OpenRouter, Ollama, LM Studio, your own server; only the snippet you preview is sent; keys are encrypted with Android Keystore
+
+**Privacy**
+- No ads, analytics or tracking SDKs; no account; documents stay on the device unless you share them or open a GitHub link
+
+## Feature details
 
 - Responsive phone, tablet, split-screen and foldable layouts. The ribbon spans the top of normal phone/tablet windows; separating vertical and horizontal hinges place the reader in an uninterrupted pane. Folding posture comes from Jetpack WindowManager. Wrap shows an accent fill and border while enabled, with an accessible On/Off state; Fit width adjusts text size within 8–40sp without changing Wrap. Native pinch zoom (8–40sp), zoom buttons, inertial scrolling, horizontal panning when wrapping is off, and fit-width reflow preserve document text.
 - Office-style File / Search / View / Code / Navigation / Support ribbon with rounded tabs with accent top/side outlines and open bottom edges joined to the ribbon upper border; the surrounding top bar stays unframed, 112dp command groups, outlined primary tiles, two stacked secondary actions, separators and aligned group captions. Tabs and command groups scroll horizontally when they exceed the available width. Reading scroll collapses the ribbon; scrolling back expands it unless it was manually collapsed. Manual collapse stays locked until tapping a tab or Expand ribbon, then automatic scroll behavior resumes. Resting folds put the entire controls pane below a horizontal hinge and the code above it. CodeFile’s 40dp icon sits left of File; Settings is in Support and also opens when pressing the app icon. The filename row stays visible. Tapping the selected tab collapses the expanded ribbon; finger displacement controls its animation, avoiding feedback from editor layout changes.
@@ -53,11 +103,13 @@ Images land in `screenshots/`.
 - Document/language/navigation status is consolidated into the horizontally scrollable bottom status bar. The filename remains above the editor.
 - Support ribbon includes Log .gz, service details, licenses and diagnostics. Native gzip diagnostic-log sharing with `ACTION_SEND`, `application/gzip`, a read-only content provider, and temporary URI permission. Reports omit source, prompts, responses, endpoint URLs, and credentials.
 
-## Markdown and JSON previews
+## Previews
 
 Markdown files expose an **MD** ribbon with **Preview**. Markwon renders headings, emphasis, lists, quotes, links, fenced code, GFM tables, strikethrough and task lists into native Android text spans. Preview follows the theme and uses the selected code font for code blocks. Remote images, embedded HTML and math rendering are not enabled. Preview supports up to 1 MiB of source.
 
 JSON files expose a **JSON** ribbon with **View JSON tree**. Objects and arrays expand/collapse in a native recycled list. Rows show keys, types and values; tapping a scalar opens its full value and JSON path with Copy/Share. Parsing preserves numeric spellings and object entry order, accepts scalar roots and rejects malformed/trailing input. Limits are 2 MiB, 50,000 values and 128 nesting levels. Both previews parse off the UI thread and leave source text unchanged; format tabs follow file switches and language detection.
+
+The same ribbon tab adapts to the open file and is named for it: **YAML**, **TOML**, **INI**, **Props** or **XML** offer **View tree** (the recycled native tree used for JSON; tapping a scalar shows its full value and path); **JSON** also covers `.jsonc` (comments and trailing commas are stripped before parsing), `.jsonl` / `.ndjson` (one node per record), `.geojson` and `.ipynb`; **Diff** offers **View diff** for `.diff` and `.patch` files. YAML trees refuse alias expansion bombs, TOML supports tables, arrays of tables, dotted keys, inline tables and multi-line strings and arrays, `.properties` dotted keys nest where unambiguous, and XML never resolves DTDs or external entities. Tree views share the 2 MiB, 50,000-value and 128-level limits; patch view supports 1 MiB / 20,000 lines.
 
 ## Navigation and LSP
 
@@ -67,7 +119,7 @@ Press a visible line number and slowly drag to select complete lines in either d
 
 Both the standard text-selection toolbar and the line-selection ribbon offer a colored highlight swatch. Tap it for a native popup containing Android RGB sliders, a hex field, Apply highlight and Clear colors. Highlight annotations follow exact selected ranges across wrapping, panning and zoom; overlapping colors replace only the overlapping range. Clear colors is also directly available when the selection intersects a highlighted range. They remain with each open document during the session and do not alter exported source. Original and formatted previews keep separate annotations; regenerating a changed preview clears its old annotations. Source references are drawn inside the native line-number gutter, so panning does not resize the editor. Both columns pan with unwrapped text and return at the left edge. Horizontal drags starting over numbers hand off to panning; slow vertical drags still select lines. Horizontal gestures cannot collapse the ribbon, and horizontal edge stretch is cleared to allow immediate reversal.
 
-File’s Sharing group and the selection ribbon include **Share PDF**. PDF export uses Android’s native PDF canvas and preserves exact selected text, syntax colors and emphasis, theme background, font, line spacing, tab stops, applied highlights, the line-number setting, and original-source references in formatted previews. It reflows to paper width with a 10pt font and pagination; cursor/selection handles, editor guides, and temporary search matches are interactive UI and are omitted. With no text selected it exports the full displayed document. A read-only content URI is shared through Android’s chooser. PDF export supports up to 1 MiB of text and 500 pages.
+File’s Sharing group and the selection ribbon include **Share PDF**, which first asks for a paper size (A4, Letter, Legal, A5, A6, B5, Executive or Tabloid; the choice is remembered). PDF export uses Android’s native PDF canvas and preserves exact selected text, syntax colors and emphasis, theme background, font, line spacing, tab stops, applied highlights, the line-number setting, and original-source references in formatted previews. It reflows to the chosen paper width with a 10pt font and pagination; cursor/selection handles, editor guides, and temporary search matches are interactive UI and are omitted. With no text selected it exports the full displayed document. A read-only content URI is shared through Android’s chooser. PDF export supports up to 1 MiB of text and 500 pages.
 
 ## OpenRouter and local APIs
 

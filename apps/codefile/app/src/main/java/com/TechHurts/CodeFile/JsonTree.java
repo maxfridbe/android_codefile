@@ -20,19 +20,24 @@ final class JsonTree {
     }
 
     boolean container() {
-      return type.equals("object") || type.equals("array");
+      return type.equals("object") || type.equals("array") || type.equals("element");
     }
   }
 
   private int count;
 
   static Node parse(String source) throws IOException {
+    return parse(source, "$", "$");
+  }
+
+  /** Parses one JSON value, naming its root so lines of a JSON Lines file stay distinguishable. */
+  static Node parse(String source, String rootKey, String rootPath) throws IOException {
     if (source.length() > 2 * 1024 * 1024)
       throw new IOException("JSON tree supports files up to 2 MiB");
     try (JsonReader reader = new JsonReader(new StringReader("[" + source + "]"))) {
       reader.setLenient(false);
       reader.beginArray();
-      Node root = new JsonTree().read(reader, "$", "$", 0);
+      Node root = new JsonTree().read(reader, rootKey, rootPath, 0);
       if (reader.hasNext()) throw new IOException("Expected one JSON value");
       reader.endArray();
       if (reader.peek() != JsonToken.END_DOCUMENT) throw new IOException("Trailing JSON content");

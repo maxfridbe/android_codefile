@@ -277,6 +277,85 @@ public class NativeActivityTest {
     }
   }
 
+  private void open(MainActivity activity, String name, String text) throws Exception {
+    java.lang.reflect.Method add =
+        MainActivity.class.getDeclaredMethod(
+            "addDocument", String.class, String.class, String.class, String.class);
+    add.setAccessible(true);
+    add.invoke(activity, name, text, "UTF-8", "");
+    shadowOf(Looper.getMainLooper()).idle();
+  }
+
+  @Test
+  public void dataTabAdaptsToTheOpenFormat() throws Exception {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      open(activity, "ci.yml", "name: ci\non: push\n");
+      assertEquals(View.VISIBLE, button(root, "YAML").getVisibility());
+      assertNull("the tab is named for the format, not JSON", button(root, "JSON"));
+      expandTab(root, "YAML");
+      assertTrue(button(root, "View tree").isShown());
+      assertFalse(button(root, "View JSON tree").isShown());
+      assertFalse(button(root, "View diff").isShown());
+      open(activity, "Cargo.toml", "[package]\nname = \"a\"\n");
+      assertEquals(View.VISIBLE, button(root, "TOML").getVisibility());
+      open(activity, "pom.xml", "<project><a/></project>");
+      assertEquals(View.VISIBLE, button(root, "XML").getVisibility());
+      open(activity, "app.properties", "a.b=1\n");
+      assertEquals(View.VISIBLE, button(root, "Props").getVisibility());
+      open(activity, "fix.patch", "--- a/x\n+++ b/x\n@@ -1 +1 @@\n-a\n+b\n");
+      assertEquals(View.VISIBLE, button(root, "Diff").getVisibility());
+      expandTab(root, "Diff");
+      assertTrue(button(root, "View diff").isShown());
+      assertFalse(button(root, "View tree").isShown());
+      open(activity, "events.jsonl", "{\"a\":1}\n{\"a\":2}\n");
+      assertEquals(View.VISIBLE, button(root, "JSON").getVisibility());
+      expandTab(root, "JSON");
+      assertTrue(button(root, "View JSON tree").isShown());
+      open(activity, "notes.txt", "hello");
+      assertEquals(View.GONE, button(root, "JSON").getVisibility());
+    }
+  }
+
+  @Test
+  public void castThisOpensTheSystemCastScreen() {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      button(root, "Cast this").performClick();
+      assertEquals(
+          android.provider.Settings.ACTION_CAST_SETTINGS,
+          shadowOf(activity).getNextStartedActivity().getAction());
+    }
+  }
+
+  @Test
+  @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+  public void sharePdfAsksForPaperSizeAndRemembersIt() throws Exception {
+    try (ActivityController<MainActivity> controller =
+        Robolectric.buildActivity(MainActivity.class).setup()) {
+      MainActivity activity = controller.get();
+      View root = activity.getWindow().getDecorView();
+      shadowOf(Looper.getMainLooper()).idle();
+      button(root, "Share PDF").performClick();
+      shadowOf(Looper.getMainLooper()).idle();
+      android.app.AlertDialog dialog = (android.app.AlertDialog) ShadowDialog.getLatestDialog();
+      Spinner size = find(dialog.getWindow().getDecorView(), Spinner.class);
+      assertEquals(8, size.getCount());
+      assertEquals("A4 · 210 × 297 mm", size.getSelectedItem());
+      size.setSelection(3);
+      button(dialog.getWindow().getDecorView(), "Share PDF").performClick();
+      assertEquals(
+          "A5",
+          activity.getSharedPreferences("native-settings", Context.MODE_PRIVATE).getString("pdfPage", ""));
+    }
+  }
+
   @Test
   public void sourceFromShareIntentIsNotExecutable() {
     Intent intent =

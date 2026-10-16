@@ -8,7 +8,7 @@ CodeFile is a native Android viewer for source code and text. Open files from yo
 
 Use the contextual Markdown ribbon to preview headings, lists, code blocks, tables and task lists. Explore JSON objects and arrays in an expandable tree without changing numeric values. Built-in formatting handles common code and data formats, including YAML, CSV and XML.
 
-Compare documents with visual diffs. Select text or drag line numbers to select whole lines, apply highlight colors, copy snippets, or share a styled PDF. Local navigation includes searchable symbols and previews. Java navigation works within the open file; other languages use a local lexical index.
+See YAML, TOML, INI, properties, XML and JSON Lines as expandable trees, and read .diff patches with colored changes. Choose A4, Letter, A5 or another paper size when you share a syntax-highlighted PDF, or cast the viewer to a TV. Compare documents with visual diffs. Select text or drag line numbers to select whole lines, apply highlight colors, copy snippets, or share a styled PDF. Local navigation includes searchable symbols and previews. Java navigation works within the open file; other languages use a local lexical index.
 
 The ribbon adapts to phones, tablets and foldable screens. Settings include paired light and dark themes and embedded Nerd Fonts.
 
